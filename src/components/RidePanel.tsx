@@ -16,13 +16,29 @@ interface RouteInfo {
   geometry: [number, number][];
 }
 
+interface PriceInfo {
+  distance: number;
+  duration: number;
+  priceBreakdown: PriceBreakdown;
+}
+
 interface RidePanelProps {
   onPickupChange: (location: Location | null) => void;
   onDestinationChange: (location: Location | null) => void;
   onRouteCalculated: (route: [number, number][] | null) => void;
+  onRouteInfoChange?: (routeInfo: PriceInfo | null) => void;
+  isMinimized?: boolean;
+  onToggleMinimize?: () => void;
 }
 
-const RidePanel = ({ onPickupChange, onDestinationChange, onRouteCalculated }: RidePanelProps) => {
+const RidePanel = ({
+  onPickupChange,
+  onDestinationChange,
+  onRouteCalculated,
+  onRouteInfoChange,
+  isMinimized = false,
+  onToggleMinimize
+}: RidePanelProps) => {
   const [pickupAddress, setPickupAddress] = useState('');
   const [destinationAddress, setDestinationAddress] = useState('');
   const [pickupCoords, setPickupCoords] = useState<[number, number] | null>(null);
@@ -40,6 +56,7 @@ const RidePanel = ({ onPickupChange, onDestinationChange, onRouteCalculated }: R
     setRouteInfo(null);
     setPriceBreakdown(null);
     onRouteCalculated(null);
+    if (onRouteInfoChange) onRouteInfoChange(null);
   };
 
   const handleDestinationSelect = (result: { display_name: string; lat: string; lon: string }) => {
@@ -51,6 +68,7 @@ const RidePanel = ({ onPickupChange, onDestinationChange, onRouteCalculated }: R
     setRouteInfo(null);
     setPriceBreakdown(null);
     onRouteCalculated(null);
+    if (onRouteInfoChange) onRouteInfoChange(null);
   };
 
   const calculateRoute = async () => {
@@ -80,6 +98,20 @@ const RidePanel = ({ onPickupChange, onDestinationChange, onRouteCalculated }: R
         setPriceBreakdown(breakdown);
 
         onRouteCalculated(geometry);
+
+        // Pass route info to parent for map popup
+        if (onRouteInfoChange) {
+          onRouteInfoChange({
+            distance: distanceKm,
+            duration: durationMin,
+            priceBreakdown: breakdown,
+          });
+        }
+
+        // Auto-minimize panel after calculation
+        if (onToggleMinimize) {
+          onToggleMinimize();
+        }
       }
     } catch (error) {
       console.error('Routing error:', error);
@@ -91,104 +123,125 @@ const RidePanel = ({ onPickupChange, onDestinationChange, onRouteCalculated }: R
   const canCalculate = pickupCoords && destinationCoords && !isCalculating;
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 50 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-      className="absolute bottom-0 left-0 right-0 p-4 md:p-6 z-10"
-    >
-      <div className="max-w-lg mx-auto space-y-4">
-        {/* Search Panel */}
-        <motion.div
-          className="glass-panel p-4 md:p-5"
-          layout
-        >
-          {/* Header */}
-          <div className="flex items-center gap-3 mb-4">
-            <div className="p-2 bg-primary/10 rounded-xl">
-              <Car className="w-5 h-5 text-primary" />
-            </div>
-            <div>
-              <h2 className="font-display font-semibold text-foreground">Book a Ride</h2>
-              <p className="text-xs text-muted-foreground">Enter your pickup and destination</p>
-            </div>
-          </div>
+    <div className="absolute bottom-0 left-0 right-0 p-4 md:p-6 z-10 pointer-events-none">
+      <div className="max-w-lg mx-auto relative">
+        <AnimatePresence mode="wait">
+          {!isMinimized ? (
+            <motion.div
+              key="expanded"
+              initial={{ opacity: 0, y: 100 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 100 }}
+              transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+              className="space-y-4 pointer-events-auto"
+            >
+              {/* Search Panel */}
+              <motion.div
+                className="glass-panel p-4 md:p-5"
+                layout
+              >
+                {/* Header */}
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="p-2 bg-primary/10 rounded-xl">
+                    <Car className="w-5 h-5 text-primary" />
+                  </div>
+                  <div className="flex-1">
+                    <h2 className="font-display font-semibold text-foreground">Book a Ride</h2>
+                    <p className="text-xs text-muted-foreground">Enter your pickup and destination</p>
+                  </div>
+                  <button
+                    onClick={onToggleMinimize}
+                    className="p-2 hover:bg-muted rounded-full transition-colors text-muted-foreground"
+                    title="Minimize"
+                  >
+                    <ArrowRight className="w-4 h-4 rotate-90" />
+                  </button>
+                </div>
 
-          {/* Search inputs */}
-          <div className="space-y-3">
-            <SearchInput
-              type="pickup"
-              value={pickupAddress}
-              onChange={(value) => {
-                setPickupAddress(value);
-                if (!value) {
-                  setPickupCoords(null);
-                  onPickupChange(null);
-                }
-              }}
-              onSelect={handlePickupSelect}
-              placeholder="Enter pickup location"
-            />
-            
-            {/* Connector line */}
-            <div className="flex items-center gap-3 px-4">
-              <div className="w-[2px] h-6 bg-gradient-to-b from-primary to-success rounded-full ml-[13px]" />
-            </div>
+                {/* Search inputs */}
+                <div className="space-y-3">
+                  <SearchInput
+                    type="pickup"
+                    value={pickupAddress}
+                    onChange={(value) => {
+                      setPickupAddress(value);
+                      if (!value) {
+                        setPickupCoords(null);
+                        onPickupChange(null);
+                      }
+                    }}
+                    onSelect={handlePickupSelect}
+                    placeholder="Enter pickup location"
+                  />
 
-            <SearchInput
-              type="destination"
-              value={destinationAddress}
-              onChange={(value) => {
-                setDestinationAddress(value);
-                if (!value) {
-                  setDestinationCoords(null);
-                  onDestinationChange(null);
-                }
-              }}
-              onSelect={handleDestinationSelect}
-              placeholder="Enter destination"
-            />
-          </div>
+                  {/* Connector line */}
+                  <div className="flex items-center gap-3 px-4">
+                    <div className="w-[2px] h-6 bg-gradient-to-b from-primary to-success rounded-full ml-[13px]" />
+                  </div>
 
-          {/* Calculate button */}
-          <motion.button
-            onClick={calculateRoute}
-            disabled={!canCalculate}
-            className={`w-full mt-4 py-3.5 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 transition-all ${
-              canCalculate
-                ? 'glow-button text-primary-foreground'
-                : 'bg-muted text-muted-foreground cursor-not-allowed'
-            }`}
-            whileTap={canCalculate ? { scale: 0.98 } : undefined}
-          >
-            {isCalculating ? (
-              <>
-                <Loader2 className="w-4 h-4 animate-spin" />
-                Calculating route...
-              </>
-            ) : (
-              <>
-                <Sparkles className="w-4 h-4" />
-                Calculate Ride
-                <ArrowRight className="w-4 h-4" />
-              </>
-            )}
-          </motion.button>
-        </motion.div>
+                  <SearchInput
+                    type="destination"
+                    value={destinationAddress}
+                    onChange={(value) => {
+                      setDestinationAddress(value);
+                      if (!value) {
+                        setDestinationCoords(null);
+                        onDestinationChange(null);
+                      }
+                    }}
+                    onSelect={handleDestinationSelect}
+                    placeholder="Enter destination"
+                  />
+                </div>
 
-        {/* Price Card */}
-        <AnimatePresence>
-          {routeInfo && priceBreakdown && (
-            <PriceCard
-              distance={routeInfo.distance}
-              duration={routeInfo.duration}
-              priceBreakdown={priceBreakdown}
-              isVisible={true}
-            />
+                {/* Calculate button */}
+                <motion.button
+                  onClick={calculateRoute}
+                  disabled={!canCalculate}
+                  className={`w-full mt-4 py-3.5 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 transition-all ${canCalculate
+                    ? 'glow-button text-primary-foreground'
+                    : 'bg-muted text-muted-foreground cursor-not-allowed'
+                    }`}
+                  whileTap={canCalculate ? { scale: 0.98 } : undefined}
+                >
+                  {isCalculating ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      Calculating route...
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="w-4 h-4" />
+                      Calculate Ride
+                      <ArrowRight className="w-4 h-4" />
+                    </>
+                  )}
+                </motion.button>
+              </motion.div>
+            </motion.div>
+          ) : (
+            <motion.div
+              key="minimized"
+              initial={{ opacity: 0, y: 20, scale: 0.8 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 20, scale: 0.8 }}
+              className="flex justify-center pointer-events-auto pb-4"
+            >
+              <button
+                onClick={onToggleMinimize}
+                className="glass-panel px-6 py-3 flex items-center gap-3 hover:bg-white/10 transition-all group scale-button"
+              >
+                <div className="p-1.5 bg-primary/20 rounded-lg group-hover:bg-primary/30 transition-colors">
+                  <Car className="w-4 h-4 text-primary" />
+                </div>
+                <span className="font-semibold text-sm text-foreground">Restore Ride Panel</span>
+                <ArrowRight className="w-4 h-4 -rotate-90 text-primary" />
+              </button>
+            </motion.div>
           )}
         </AnimatePresence>
       </div>
-    </motion.div>
+    </div>
   );
 };
 

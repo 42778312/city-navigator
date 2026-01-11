@@ -1,39 +1,50 @@
 import { useEffect, useRef, useCallback } from 'react';
 import maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
+import { createRoot } from 'react-dom/client';
+import PricePopup from './PricePopup';
+import { PriceBreakdown } from '@/lib/taxiPricing';
+
+interface RouteInfo {
+  distance: number;
+  duration: number;
+  priceBreakdown: PriceBreakdown;
+}
 
 interface MapProps {
   pickup: [number, number] | null;
   destination: [number, number] | null;
   route: [number, number][] | null;
   onMapLoad?: (map: maplibregl.Map) => void;
+  onMapClick?: () => void;
+  routeInfo?: RouteInfo | null;
 }
 
-const Map = ({ pickup, destination, route, onMapLoad }: MapProps) => {
+const Map = ({ pickup, destination, route, onMapLoad, onMapClick, routeInfo }: MapProps) => {
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<maplibregl.Map | null>(null);
   const pickupMarker = useRef<maplibregl.Marker | null>(null);
   const destinationMarker = useRef<maplibregl.Marker | null>(null);
+  const popup = useRef<maplibregl.Popup | null>(null);
 
   const createMarkerElement = (type: 'pickup' | 'destination') => {
     const el = document.createElement('div');
-    el.className = 'relative';
-    
+    // Ensure container is sized to contain the largest animation ring (48px)
+    // and use flexbox to perfectly center content
+    el.style.cssText = 'width: 48px; height: 48px; display: flex; align-items: center; justify-content: center;';
+
     const isPickup = type === 'pickup';
     const bgColor = isPickup ? '#00D9FF' : '#22C55E';
     const icon = isPickup ? '📍' : '🎯';
-    
+
     el.innerHTML = `
-      <div class="relative flex items-center justify-center">
-        <div class="absolute w-12 h-12 rounded-full animate-ping" style="background: ${bgColor}30;"></div>
-        <div class="absolute w-8 h-8 rounded-full" style="background: ${bgColor}50;"></div>
-        <div class="relative w-10 h-10 rounded-full flex items-center justify-center text-xl shadow-lg" 
-             style="background: linear-gradient(135deg, ${bgColor}, ${isPickup ? '#0099CC' : '#16A34A'});">
-          ${icon}
-        </div>
+      <div style="position: absolute; width: 48px; height: 48px; border-radius: 50%; background: ${bgColor}30; animation: pulse-ring 2s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;"></div>
+      <div style="position: absolute; width: 32px; height: 32px; border-radius: 50%; background: ${bgColor}50;"></div>
+      <div style="position: relative; width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.3); background: linear-gradient(135deg, ${bgColor}, ${isPickup ? '#0099CC' : '#16A34A'}); color: white; border: 2px solid rgba(255,255,255,0.2);">
+        ${icon}
       </div>
     `;
-    
+
     return el;
   };
 
@@ -79,6 +90,7 @@ const Map = ({ pickup, destination, route, onMapLoad }: MapProps) => {
       'bottom-right'
     );
 
+
     map.current.on('load', () => {
       if (onMapLoad && map.current) {
         onMapLoad(map.current);
@@ -90,6 +102,25 @@ const Map = ({ pickup, destination, route, onMapLoad }: MapProps) => {
       map.current = null;
     };
   }, [onMapLoad]);
+
+  // Handle map clicks separately to avoid re-initializing the map
+  useEffect(() => {
+    if (!map.current) return;
+
+    const handleMapClick = () => {
+      if (onMapClick) {
+        onMapClick();
+      }
+    };
+
+    map.current.on('click', handleMapClick);
+
+    return () => {
+      if (map.current) {
+        map.current.off('click', handleMapClick);
+      }
+    };
+  }, [onMapClick]);
 
   // Update pickup marker
   useEffect(() => {
@@ -119,6 +150,11 @@ const Map = ({ pickup, destination, route, onMapLoad }: MapProps) => {
       destinationMarker.current = null;
     }
 
+    if (popup.current) {
+      popup.current.remove();
+      popup.current = null;
+    }
+
     if (destination) {
       destinationMarker.current = new maplibregl.Marker({
         element: createMarkerElement('destination'),
@@ -126,8 +162,32 @@ const Map = ({ pickup, destination, route, onMapLoad }: MapProps) => {
       })
         .setLngLat(destination)
         .addTo(map.current);
+
+      // Add popup with price info if routeInfo is available
+      if (routeInfo) {
+        const popupContainer = document.createElement('div');
+        const root = createRoot(popupContainer);
+        root.render(
+          <PricePopup
+            priceBreakdown={routeInfo.priceBreakdown}
+            distance={routeInfo.distance}
+            duration={routeInfo.duration}
+          />
+        );
+
+        popup.current = new maplibregl.Popup({
+          offset: 40,
+          closeButton: false,
+          closeOnClick: false,
+          className: 'price-popup-container',
+          anchor: 'bottom',
+        })
+          .setLngLat(destination)
+          .setDOMContent(popupContainer)
+          .addTo(map.current);
+      }
     }
-  }, [destination]);
+  }, [destination, routeInfo]);
 
   // Update route
   useEffect(() => {
@@ -148,6 +208,20 @@ const Map = ({ pickup, destination, route, onMapLoad }: MapProps) => {
       }
 
       if (route && route.length > 0) {
+        // Ensure route starts at pickup and ends at destination
+        let routeCoordinates = [...route];
+
+        // Add pickup as first point if not already there
+        if (pickup && (routeCoordinates[0][0] !== pickup[0] || routeCoordinates[0][1] !== pickup[1])) {
+          routeCoordinates = [pickup, ...routeCoordinates];
+        }
+
+        // Add destination as last point if not already there
+        if (destination && (routeCoordinates[routeCoordinates.length - 1][0] !== destination[0] ||
+          routeCoordinates[routeCoordinates.length - 1][1] !== destination[1])) {
+          routeCoordinates = [...routeCoordinates, destination];
+        }
+
         mapInstance.addSource('route', {
           type: 'geojson',
           data: {
@@ -155,7 +229,7 @@ const Map = ({ pickup, destination, route, onMapLoad }: MapProps) => {
             properties: {},
             geometry: {
               type: 'LineString',
-              coordinates: route,
+              coordinates: routeCoordinates,
             },
           },
         });
@@ -207,7 +281,7 @@ const Map = ({ pickup, destination, route, onMapLoad }: MapProps) => {
     } else {
       mapInstance.on('load', updateRoute);
     }
-  }, [route]);
+  }, [route, pickup, destination]);
 
   // Fit bounds when both markers are set
   useEffect(() => {
@@ -216,7 +290,7 @@ const Map = ({ pickup, destination, route, onMapLoad }: MapProps) => {
     const bounds = new maplibregl.LngLatBounds();
     bounds.extend(pickup);
     bounds.extend(destination);
-    
+
     map.current.fitBounds(bounds, {
       padding: { top: 100, bottom: 350, left: 50, right: 50 },
       duration: 1000,

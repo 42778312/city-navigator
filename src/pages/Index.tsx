@@ -2,6 +2,13 @@ import { useState, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import Map from '@/components/Map';
 import RidePanel from '@/components/RidePanel';
+import { PriceBreakdown } from '@/lib/taxiPricing';
+
+interface PriceInfo {
+  distance: number;
+  duration: number;
+  priceBreakdown: PriceBreakdown;
+}
 
 interface Location {
   address: string;
@@ -12,6 +19,8 @@ const Index = () => {
   const [pickup, setPickup] = useState<Location | null>(null);
   const [destination, setDestination] = useState<Location | null>(null);
   const [route, setRoute] = useState<[number, number][] | null>(null);
+  const [isMinimized, setIsMinimized] = useState(false);
+  const [routeInfo, setRouteInfo] = useState<PriceInfo | null>(null);
 
   const handlePickupChange = useCallback((location: Location | null) => {
     setPickup(location);
@@ -32,6 +41,8 @@ const Index = () => {
         pickup={pickup?.coords || null}
         destination={destination?.coords || null}
         route={route}
+        onMapClick={() => setIsMinimized(true)}
+        routeInfo={routeInfo}
       />
 
       {/* Gradient overlay for better readability */}
@@ -57,6 +68,9 @@ const Index = () => {
         onPickupChange={handlePickupChange}
         onDestinationChange={handleDestinationChange}
         onRouteCalculated={handleRouteCalculated}
+        onRouteInfoChange={setRouteInfo}
+        isMinimized={isMinimized}
+        onToggleMinimize={() => setIsMinimized(!isMinimized)}
       />
     </div>
   );

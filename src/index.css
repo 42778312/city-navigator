@@ -44,12 +44,12 @@
     --glass-border: 220 15% 25% / 0.3;
     --glow-primary: 187 100% 43% / 0.3;
     --glow-strong: 187 100% 43% / 0.5;
-    
+
     /* Gradients */
     --gradient-primary: linear-gradient(135deg, hsl(187 100% 43%), hsl(200 100% 50%));
     --gradient-card: linear-gradient(180deg, hsl(220 20% 12%), hsl(220 20% 8%));
     --gradient-glass: linear-gradient(135deg, hsl(220 20% 15% / 0.8), hsl(220 20% 8% / 0.6));
-    
+
     /* Shadows */
     --shadow-glow: 0 0 40px hsl(var(--glow-primary));
     --shadow-card: 0 8px 32px hsl(220 50% 5% / 0.5);
@@ -145,7 +145,9 @@
     transform: scale(0.5);
     opacity: 1;
   }
-  80%, 100% {
+
+  80%,
+  100% {
     transform: scale(2.5);
     opacity: 0;
   }
@@ -178,7 +180,7 @@
   background: hsl(220 20% 15%) !important;
 }
 
-.maplibregl-ctrl-group button + button {
+.maplibregl-ctrl-group button+button {
   border-top: 1px solid hsl(220 15% 22% / 0.5) !important;
 }
 
@@ -199,4 +201,17 @@
 
 .maplibregl-popup-tip {
   border-top-color: hsl(220 20% 10% / 0.95) !important;
+}
+
+.maplibregl-popup-close-button {
+  display: none !important;
+}
+
+/* Price Popup Styles */
+.price-popup {
+  @apply backdrop-blur-xl rounded-xl p-3;
+  background: linear-gradient(135deg, hsl(220 20% 12% / 0.6), hsl(220 20% 8% / 0.5));
+  border: 1px solid hsl(187 100% 43% / 0.4);
+  box-shadow: 0 0 30px hsl(var(--glow-primary)), 0 8px 24px hsl(220 50% 5% / 0.6);
+  min-width: 180px;
 }
