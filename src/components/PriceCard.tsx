@@ -1,14 +1,15 @@
 import { motion } from 'framer-motion';
-import { Car, Clock, Route, Zap } from 'lucide-react';
+import { Car, Clock, Route, Info } from 'lucide-react';
+import { PriceBreakdown, formatPrice } from '@/lib/taxiPricing';
 
 interface PriceCardProps {
-  distance: number; // in km
-  duration: number; // in minutes
-  price: number; // in euros
+  distance: number;
+  duration: number;
+  priceBreakdown: PriceBreakdown;
   isVisible: boolean;
 }
 
-const PriceCard = ({ distance, duration, price, isVisible }: PriceCardProps) => {
+const PriceCard = ({ distance, duration, priceBreakdown, isVisible }: PriceCardProps) => {
   if (!isVisible) return null;
 
   const formatDuration = (minutes: number) => {
@@ -28,6 +29,16 @@ const PriceCard = ({ distance, duration, price, isVisible }: PriceCardProps) => 
       transition={{ type: 'spring', damping: 20, stiffness: 300 }}
       className="price-card p-5"
     >
+      {/* Tariff indicator */}
+      <motion.div
+        initial={{ opacity: 0, x: -10 }}
+        animate={{ opacity: 1, x: 0 }}
+        className="flex items-center gap-2 mb-3 px-3 py-1.5 bg-primary/10 rounded-lg w-fit"
+      >
+        <span className="text-lg">{priceBreakdown.tariffIcon}</span>
+        <span className="text-sm font-medium text-primary">{priceBreakdown.tariffName}</span>
+      </motion.div>
+
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
@@ -35,18 +46,18 @@ const PriceCard = ({ distance, duration, price, isVisible }: PriceCardProps) => 
             <Car className="w-5 h-5 text-primary" />
           </div>
           <div>
-            <p className="text-sm text-muted-foreground">Estimated fare</p>
-            <p className="text-xs text-muted-foreground/70">Standard ride</p>
+            <p className="text-sm text-muted-foreground">Taxi Konstanz</p>
+            <p className="text-xs text-muted-foreground/70">Official tariff</p>
           </div>
         </div>
         <motion.div
-          key={price}
+          key={priceBreakdown.totalPrice}
           initial={{ scale: 1.2, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           className="text-right"
         >
           <p className="text-3xl font-display font-bold text-gradient">
-            €{price.toFixed(2)}
+            {formatPrice(priceBreakdown.totalPrice)}
           </p>
         </motion.div>
       </div>
@@ -85,12 +96,44 @@ const PriceCard = ({ distance, duration, price, isVisible }: PriceCardProps) => 
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 0.2 }}
-        className="mt-4 pt-4 border-t border-border/50"
+        className="mt-4 pt-4 border-t border-border/50 space-y-2"
       >
-        <div className="flex items-center gap-2 text-xs text-muted-foreground">
-          <Zap className="w-3 h-3" />
-          <span>Base fare €3.00 + €1.80/km</span>
+        <div className="flex items-center gap-2 mb-2">
+          <Info className="w-3 h-3 text-muted-foreground" />
+          <span className="text-xs font-medium text-muted-foreground">Price breakdown</span>
         </div>
+        
+        {/* Base fare */}
+        <div className="flex justify-between text-sm">
+          <span className="text-muted-foreground">Base fare</span>
+          <span className="text-foreground font-medium">{formatPrice(priceBreakdown.baseFare)}</span>
+        </div>
+
+        {/* Distance pricing tiers */}
+        {priceBreakdown.priceDetails.map((detail, index) => (
+          <div key={index} className="flex justify-between text-sm">
+            <span className="text-muted-foreground">
+              {detail.km.toFixed(1)} km × {formatPrice(detail.pricePerKm)}/km
+            </span>
+            <span className="text-foreground font-medium">{formatPrice(detail.subtotal)}</span>
+          </div>
+        ))}
+
+        {/* Total */}
+        <div className="flex justify-between text-sm pt-2 border-t border-border/30">
+          <span className="text-foreground font-semibold">Total</span>
+          <span className="text-primary font-bold">{formatPrice(priceBreakdown.totalPrice)}</span>
+        </div>
+      </motion.div>
+
+      {/* Tariff info */}
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 0.25 }}
+        className="mt-3 text-xs text-muted-foreground/70 text-center"
+      >
+        Valid from July 1, 2025 • Konstanz official rates
       </motion.div>
     </motion.div>
   );
