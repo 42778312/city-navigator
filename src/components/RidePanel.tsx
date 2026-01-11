@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowRight, Loader2, Car, Sparkles } from 'lucide-react';
 import SearchInput from './SearchInput';
 import PriceCard from './PriceCard';
+import { calculateTaxiFare, PriceBreakdown } from '@/lib/taxiPricing';
 
 interface Location {
   address: string;
@@ -28,7 +29,7 @@ const RidePanel = ({ onPickupChange, onDestinationChange, onRouteCalculated }: R
   const [destinationCoords, setDestinationCoords] = useState<[number, number] | null>(null);
   const [routeInfo, setRouteInfo] = useState<RouteInfo | null>(null);
   const [isCalculating, setIsCalculating] = useState(false);
-  const [price, setPrice] = useState<number | null>(null);
+  const [priceBreakdown, setPriceBreakdown] = useState<PriceBreakdown | null>(null);
 
   const handlePickupSelect = (result: { display_name: string; lat: string; lon: string }) => {
     const coords: [number, number] = [parseFloat(result.lon), parseFloat(result.lat)];
@@ -37,7 +38,7 @@ const RidePanel = ({ onPickupChange, onDestinationChange, onRouteCalculated }: R
     onPickupChange({ address: result.display_name, coords });
     // Reset route when changing locations
     setRouteInfo(null);
-    setPrice(null);
+    setPriceBreakdown(null);
     onRouteCalculated(null);
   };
 
@@ -48,7 +49,7 @@ const RidePanel = ({ onPickupChange, onDestinationChange, onRouteCalculated }: R
     onDestinationChange({ address: result.display_name, coords });
     // Reset route when changing locations
     setRouteInfo(null);
-    setPrice(null);
+    setPriceBreakdown(null);
     onRouteCalculated(null);
   };
 
@@ -74,11 +75,9 @@ const RidePanel = ({ onPickupChange, onDestinationChange, onRouteCalculated }: R
           geometry,
         });
 
-        // Calculate price: base fare + per km
-        const baseFare = 3;
-        const pricePerKm = 1.8;
-        const calculatedPrice = baseFare + (distanceKm * pricePerKm);
-        setPrice(calculatedPrice);
+        // Calculate price using official Konstanz taxi tariff
+        const breakdown = calculateTaxiFare(distanceKm);
+        setPriceBreakdown(breakdown);
 
         onRouteCalculated(geometry);
       }
@@ -179,11 +178,11 @@ const RidePanel = ({ onPickupChange, onDestinationChange, onRouteCalculated }: R
 
         {/* Price Card */}
         <AnimatePresence>
-          {routeInfo && price !== null && (
+          {routeInfo && priceBreakdown && (
             <PriceCard
               distance={routeInfo.distance}
               duration={routeInfo.duration}
-              price={price}
+              priceBreakdown={priceBreakdown}
               isVisible={true}
             />
           )}

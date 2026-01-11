@@ -1,0 +1,49 @@
+{
+  "city": "Konstanz",
+  "validFrom": "2025-07-01",
+  "currency": "EUR",
+  "tariffs": {
+    "day": {
+      "name": "Day Tariff",
+      "icon": "☀️",
+      "schedule": {
+        "days": ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday"],
+        "startHour": 6,
+        "endHour": 22
+      },
+      "baseFare": 4.90,
+      "distancePricing": [
+        {
+          "fromKm": 0,
+          "toKm": 5,
+          "pricePerKm": 3.00
+        },
+        {
+          "fromKm": 5,
+          "toKm": null,
+          "pricePerKm": 2.80
+        }
+      ]
+    },
+    "night": {
+      "name": "Night Tariff",
+      "icon": "🌙",
+      "schedule": {
+        "description": "Monday-Saturday 22:00-06:00 + Sunday all day"
+      },
+      "baseFare": 6.90,
+      "distancePricing": [
+        {
+          "fromKm": 0,
+          "toKm": 5,
+          "pricePerKm": 3.00
+        },
+        {
+          "fromKm": 5,
+          "toKm": null,
+          "pricePerKm": 2.80
+        }
+      ]
+    }
+  }
+}
