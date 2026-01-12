@@ -1,9 +1,10 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowRight, Loader2, Car, Sparkles } from 'lucide-react';
+import { ArrowRight, Loader2, Car, Sparkles, Navigation, ArrowUpDown } from 'lucide-react';
 import SearchInput from './SearchInput';
 import { calculateTaxiFare, type PriceBreakdown } from '@/lib/taxiPricing';
-import type { AddressResult } from '@/lib/photonApi';
+import { reverseGeocode, type AddressResult } from '@/lib/photonApi';
+import { useToast } from '@/hooks/use-toast';
 
 interface Location {
   address: string;
@@ -44,6 +45,125 @@ const RidePanel = ({
   const [pickupCoords, setPickupCoords] = useState<[number, number] | null>(null);
   const [destinationCoords, setDestinationCoords] = useState<[number, number] | null>(null);
   const [isCalculating, setIsCalculating] = useState(false);
+  const [isLoadingGPS, setIsLoadingGPS] = useState(false);
+  const { toast } = useToast();
+
+  const handleUseCurrentLocation = async () => {
+    // Check if geolocation is supported
+    if (!navigator.geolocation) {
+      toast({
+        title: "GPS nicht verfügbar",
+        description: "Ihr Browser unterstützt keine Standortdienste.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    // Check if we're on a secure context (HTTPS or localhost)
+    if (!window.isSecureContext && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
+      toast({
+        title: "HTTPS erforderlich",
+        description: "GPS-Funktion benötigt eine sichere Verbindung (HTTPS).",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    // Check permissions API if available
+    if ('permissions' in navigator) {
+      try {
+        const permissionStatus = await navigator.permissions.query({ name: 'geolocation' as PermissionName });
+        console.log('Geolocation permission status:', permissionStatus.state);
+        
+        if (permissionStatus.state === 'denied') {
+          toast({
+            title: "Standortzugriff blockiert",
+            description: "Bitte erlauben Sie den Standortzugriff in Ihren Browsereinstellungen.",
+            variant: "destructive"
+          });
+          return;
+        }
+      } catch (e) {
+        console.warn('Permission API not supported:', e);
+      }
+    }
+
+    setIsLoadingGPS(true);
+    console.log('Requesting geolocation...');
+
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        console.log('Geolocation success:', position.coords);
+        try {
+          const { latitude, longitude } = position.coords;
+          
+          // Reverse geocode to get address
+          const address = await reverseGeocode(latitude, longitude);
+          
+          if (address) {
+            const coords: [number, number] = [address.longitude, address.latitude];
+            const location = { address: address.fullAddress, coords };
+            
+            setPickupAddress(address.displayLine1);
+            setPickupCoords(coords);
+            onPickupChange(location);
+            
+            toast({
+              title: "Standort gefunden",
+              description: address.displayLine1
+            });
+          } else {
+            toast({
+              title: "Adresse nicht gefunden",
+              description: "Bitte geben Sie die Adresse manuell ein.",
+              variant: "destructive"
+            });
+          }
+        } catch (error) {
+          console.error('Reverse geocoding error:', error);
+          toast({
+            title: "Fehler",
+            description: "Adresse konnte nicht ermittelt werden.",
+            variant: "destructive"
+          });
+        } finally {
+          setIsLoadingGPS(false);
+        }
+      },
+      (error) => {
+        console.error('Geolocation error:', error.code, error.message);
+        setIsLoadingGPS(false);
+        let title = "GPS Fehler";
+        let message = "Standort konnte nicht ermittelt werden.";
+        
+        switch (error.code) {
+          case error.PERMISSION_DENIED:
+            title = "Zugriff verweigert";
+            message = "Bitte erlauben Sie den Standortzugriff in Ihren Browsereinstellungen und laden Sie die Seite neu.";
+            break;
+          case error.POSITION_UNAVAILABLE:
+            title = "Position nicht verfügbar";
+            message = "Standort ist derzeit nicht verfügbar. Überprüfen Sie Ihre GPS-Einstellungen.";
+            break;
+          case error.TIMEOUT:
+            title = "Zeitüberschreitung";
+            message = "Standortabfrage hat zu lange gedauert. Bitte versuchen Sie es erneut.";
+            break;
+        }
+        
+        toast({
+          title: title,
+          description: message,
+          variant: "destructive"
+        });
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 0
+      }
+    );
+  };
 
   const handleSelect = (type: 'pickup' | 'destination', result: AddressResult) => {
     const coords: [number, number] = [result.longitude, result.latitude];
@@ -59,6 +179,29 @@ const RidePanel = ({
       onDestinationChange(location);
     }
 
+    onRouteCalculated(null);
+    onRouteInfoChange(null);
+  };
+
+  const handleSwapLocations = () => {
+    // Swap addresses
+    const tempAddress = pickupAddress;
+    setPickupAddress(destinationAddress);
+    setDestinationAddress(tempAddress);
+
+    // Swap coordinates
+    const tempCoords = pickupCoords;
+    setPickupCoords(destinationCoords);
+    setDestinationCoords(tempCoords);
+
+    // Swap in parent state
+    const tempLocation = pickupCoords ? { address: pickupAddress, coords: pickupCoords } : null;
+    const destLocation = destinationCoords ? { address: destinationAddress, coords: destinationCoords } : null;
+    
+    onPickupChange(destLocation);
+    onDestinationChange(tempLocation);
+
+    // Clear route
     onRouteCalculated(null);
     onRouteInfoChange(null);
   };
@@ -125,9 +268,33 @@ const RidePanel = ({
                 </div>
 
                 <div className="space-y-3">
-                  <SearchInput type="pickup" value={pickupAddress} onChange={setPickupAddress} onSelect={(result) => handleSelect('pickup', result)} placeholder="Enter pickup location" />
+                  <div className="relative">
+                    <SearchInput type="pickup" value={pickupAddress} onChange={setPickupAddress} onSelect={(result) => handleSelect('pickup', result)} placeholder="Enter pickup location" />
+                    <button
+                      onClick={handleUseCurrentLocation}
+                      disabled={isLoadingGPS}
+                      className="absolute right-12 top-1/2 -translate-y-1/2 p-2 hover:bg-muted rounded-lg transition-colors text-primary disabled:opacity-50 disabled:cursor-not-allowed z-10"
+                      title="Aktuellen Standort verwenden"
+                    >
+                      {isLoadingGPS ? (
+                        <Loader2 className="w-5 h-5 animate-spin" />
+                      ) : (
+                        <Navigation className="w-5 h-5" />
+                      )}
+                    </button>
+                  </div>
                   <div className="flex items-center gap-3 px-4">
                     <div className="w-[2px] h-6 bg-gradient-to-b from-primary to-success rounded-full ml-[13px]" />
+                    <motion.button
+                      onClick={handleSwapLocations}
+                      disabled={!pickupAddress && !destinationAddress}
+                      className="p-2 hover:bg-muted rounded-lg transition-colors text-muted-foreground hover:text-primary disabled:opacity-30 disabled:cursor-not-allowed"
+                      whileHover={{ scale: 1.1 }}
+                      whileTap={{ scale: 0.9, rotate: 180 }}
+                      title="Adressen tauschen"
+                    >
+                      <ArrowUpDown className="w-5 h-5" />
+                    </motion.button>
                   </div>
                   <SearchInput type="destination" value={destinationAddress} onChange={setDestinationAddress} onSelect={(result) => handleSelect('destination', result)} placeholder="Enter destination" />
                 </div>

@@ -287,5 +287,43 @@ export async function searchAddress(
   }
 }
 
+/**
+ * Reverse geocode coordinates to get address
+ * @param latitude - GPS latitude
+ * @param longitude - GPS longitude
+ * @returns The closest address or null if not found
+ */
+export async function reverseGeocode(
+  latitude: number,
+  longitude: number
+): Promise<AddressResult | null> {
+  try {
+    const params = new URLSearchParams({
+      lat: latitude.toString(),
+      lon: longitude.toString(),
+      lang: 'de',
+      limit: '1'
+    });
+
+    const response = await fetch(`${PHOTON_API_URL}/reverse?${params.toString()}`);
+    
+    if (!response.ok) {
+      throw new Error(`Photon API error: ${response.status}`);
+    }
+
+    const data: PhotonResponse = await response.json();
+
+    if (data.features.length === 0) {
+      return null;
+    }
+
+    // Return the closest address
+    return formatPhotonAddress(data.features[0]);
+  } catch (error) {
+    console.error('Photon API reverse geocoding error:', error);
+    throw error;
+  }
+}
+
 // Export only what's needed
 export { PHOTON_API_URL, MIN_QUERY_LENGTH, DEBOUNCE_DELAY };

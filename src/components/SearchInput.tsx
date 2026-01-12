@@ -103,7 +103,9 @@ const SearchInput = ({ type, value, onChange, onSelect, placeholder }: SearchInp
           onFocus={() => setIsFocused(true)}
           onBlur={() => setTimeout(() => setIsFocused(false), 200)}
           placeholder={placeholder}
-          className="flex-1 bg-transparent outline-none text-foreground placeholder:text-muted-foreground"
+          className={`flex-1 bg-transparent outline-none text-foreground placeholder:text-muted-foreground ${
+            isPickup ? 'pr-10' : ''
+          }`}
         />
         
         <AnimatePresence>
