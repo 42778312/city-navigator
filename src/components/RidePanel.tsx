@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowRight, Loader2, Car, Sparkles } from 'lucide-react';
 import SearchInput from './SearchInput';
-import PriceCard from './PriceCard';
 import { calculateTaxiFare, PriceBreakdown } from '@/lib/taxiPricing';
 
 interface Location {
@@ -26,7 +25,7 @@ interface RidePanelProps {
   onPickupChange: (location: Location | null) => void;
   onDestinationChange: (location: Location | null) => void;
   onRouteCalculated: (route: [number, number][] | null) => void;
-  onRouteInfoChange?: (routeInfo: PriceInfo | null) => void;
+  onRouteInfoChange: (routeInfo: PriceInfo | null) => void;
   isMinimized?: boolean;
   onToggleMinimize?: () => void;
 }
@@ -43,32 +42,24 @@ const RidePanel = ({
   const [destinationAddress, setDestinationAddress] = useState('');
   const [pickupCoords, setPickupCoords] = useState<[number, number] | null>(null);
   const [destinationCoords, setDestinationCoords] = useState<[number, number] | null>(null);
-  const [routeInfo, setRouteInfo] = useState<RouteInfo | null>(null);
   const [isCalculating, setIsCalculating] = useState(false);
-  const [priceBreakdown, setPriceBreakdown] = useState<PriceBreakdown | null>(null);
 
-  const handlePickupSelect = (result: { display_name: string; lat: string; lon: string }) => {
+  const handleSelect = (type: 'pickup' | 'destination', result: { display_name: string; lat: string; lon: string }) => {
     const coords: [number, number] = [parseFloat(result.lon), parseFloat(result.lat)];
-    setPickupAddress(result.display_name);
-    setPickupCoords(coords);
-    onPickupChange({ address: result.display_name, coords });
-    // Reset route when changing locations
-    setRouteInfo(null);
-    setPriceBreakdown(null);
-    onRouteCalculated(null);
-    if (onRouteInfoChange) onRouteInfoChange(null);
-  };
+    const location = { address: result.display_name, coords };
 
-  const handleDestinationSelect = (result: { display_name: string; lat: string; lon: string }) => {
-    const coords: [number, number] = [parseFloat(result.lon), parseFloat(result.lat)];
-    setDestinationAddress(result.display_name);
-    setDestinationCoords(coords);
-    onDestinationChange({ address: result.display_name, coords });
-    // Reset route when changing locations
-    setRouteInfo(null);
-    setPriceBreakdown(null);
+    if (type === 'pickup') {
+      setPickupAddress(result.display_name);
+      setPickupCoords(coords);
+      onPickupChange(location);
+    } else {
+      setDestinationAddress(result.display_name);
+      setDestinationCoords(coords);
+      onDestinationChange(location);
+    }
+
     onRouteCalculated(null);
-    if (onRouteInfoChange) onRouteInfoChange(null);
+    onRouteInfoChange(null);
   };
 
   const calculateRoute = async () => {
@@ -87,31 +78,12 @@ const RidePanel = ({
         const durationMin = route.duration / 60;
         const geometry = route.geometry.coordinates as [number, number][];
 
-        setRouteInfo({
-          distance: distanceKm,
-          duration: durationMin,
-          geometry,
-        });
-
-        // Calculate price using official Konstanz taxi tariff
         const breakdown = calculateTaxiFare(distanceKm);
-        setPriceBreakdown(breakdown);
-
+        
         onRouteCalculated(geometry);
+        onRouteInfoChange({ distance: distanceKm, duration: durationMin, priceBreakdown: breakdown });
 
-        // Pass route info to parent for map popup
-        if (onRouteInfoChange) {
-          onRouteInfoChange({
-            distance: distanceKm,
-            duration: durationMin,
-            priceBreakdown: breakdown,
-          });
-        }
-
-        // Auto-minimize panel after calculation
-        if (onToggleMinimize) {
-          onToggleMinimize();
-        }
+        if (onToggleMinimize) onToggleMinimize();
       }
     } catch (error) {
       console.error('Routing error:', error);
@@ -135,12 +107,7 @@ const RidePanel = ({
               transition={{ type: 'spring', damping: 25, stiffness: 200 }}
               className="space-y-4 pointer-events-auto"
             >
-              {/* Search Panel */}
-              <motion.div
-                className="glass-panel p-4 md:p-5"
-                layout
-              >
-                {/* Header */}
+              <motion.div className="glass-panel p-4 md:p-5" layout>
                 <div className="flex items-center gap-3 mb-4">
                   <div className="p-2 bg-primary/10 rounded-xl">
                     <Car className="w-5 h-5 text-primary" />
@@ -149,72 +116,31 @@ const RidePanel = ({
                     <h2 className="font-display font-semibold text-foreground">Book a Ride</h2>
                     <p className="text-xs text-muted-foreground">Enter your pickup and destination</p>
                   </div>
-                  <button
-                    onClick={onToggleMinimize}
-                    className="p-2 hover:bg-muted rounded-full transition-colors text-muted-foreground"
-                    title="Minimize"
-                  >
-                    <ArrowRight className="w-4 h-4 rotate-90" />
-                  </button>
+                  {onToggleMinimize && (
+                    <button onClick={onToggleMinimize} className="p-2 hover:bg-muted rounded-full transition-colors text-muted-foreground" title="Minimize">
+                      <ArrowRight className="w-4 h-4 rotate-90" />
+                    </button>
+                  )}
                 </div>
 
-                {/* Search inputs */}
                 <div className="space-y-3">
-                  <SearchInput
-                    type="pickup"
-                    value={pickupAddress}
-                    onChange={(value) => {
-                      setPickupAddress(value);
-                      if (!value) {
-                        setPickupCoords(null);
-                        onPickupChange(null);
-                      }
-                    }}
-                    onSelect={handlePickupSelect}
-                    placeholder="Enter pickup location"
-                  />
-
-                  {/* Connector line */}
+                  <SearchInput type="pickup" value={pickupAddress} onChange={setPickupAddress} onSelect={(result) => handleSelect('pickup', result)} placeholder="Enter pickup location" />
                   <div className="flex items-center gap-3 px-4">
                     <div className="w-[2px] h-6 bg-gradient-to-b from-primary to-success rounded-full ml-[13px]" />
                   </div>
-
-                  <SearchInput
-                    type="destination"
-                    value={destinationAddress}
-                    onChange={(value) => {
-                      setDestinationAddress(value);
-                      if (!value) {
-                        setDestinationCoords(null);
-                        onDestinationChange(null);
-                      }
-                    }}
-                    onSelect={handleDestinationSelect}
-                    placeholder="Enter destination"
-                  />
+                  <SearchInput type="destination" value={destinationAddress} onChange={setDestinationAddress} onSelect={(result) => handleSelect('destination', result)} placeholder="Enter destination" />
                 </div>
 
-                {/* Calculate button */}
                 <motion.button
                   onClick={calculateRoute}
                   disabled={!canCalculate}
-                  className={`w-full mt-4 py-3.5 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 transition-all ${canCalculate
-                    ? 'glow-button text-primary-foreground'
-                    : 'bg-muted text-muted-foreground cursor-not-allowed'
-                    }`}
+                  className={`w-full mt-4 py-3.5 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 transition-all ${canCalculate ? 'glow-button text-primary-foreground' : 'bg-muted text-muted-foreground cursor-not-allowed'}`}
                   whileTap={canCalculate ? { scale: 0.98 } : undefined}
                 >
                   {isCalculating ? (
-                    <>
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                      Calculating route...
-                    </>
+                    <><Loader2 className="w-4 h-4 animate-spin" />Calculating route...</>
                   ) : (
-                    <>
-                      <Sparkles className="w-4 h-4" />
-                      Calculate Ride
-                      <ArrowRight className="w-4 h-4" />
-                    </>
+                    <><Sparkles className="w-4 h-4" />Calculate Ride<ArrowRight className="w-4 h-4" /></>
                   )}
                 </motion.button>
               </motion.div>
@@ -222,21 +148,19 @@ const RidePanel = ({
           ) : (
             <motion.div
               key="minimized"
-              initial={{ opacity: 0, y: 20, scale: 0.8 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: 20, scale: 0.8 }}
-              className="flex justify-center pointer-events-auto pb-4"
+              initial={{ opacity: 0, y: 100 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 100 }}
+              transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+              className="space-y-4 pointer-events-auto"
             >
-              <button
-                onClick={onToggleMinimize}
-                className="glass-panel px-6 py-3 flex items-center gap-3 hover:bg-white/10 transition-all group scale-button"
-              >
-                <div className="p-1.5 bg-primary/20 rounded-lg group-hover:bg-primary/30 transition-colors">
-                  <Car className="w-4 h-4 text-primary" />
-                </div>
-                <span className="font-semibold text-sm text-foreground">Restore Ride Panel</span>
-                <ArrowRight className="w-4 h-4 -rotate-90 text-primary" />
-              </button>
+              <div className="flex justify-center">
+                <button onClick={onToggleMinimize} className="glass-panel px-6 py-3 flex items-center gap-3 hover:bg-white/10 transition-all group scale-button">
+                  <div className="p-1.5 bg-primary/20 rounded-lg group-hover:bg-primary/30 transition-colors"><Car className="w-4 h-4 text-primary" /></div>
+                  <span className="font-semibold text-sm text-foreground">Restore Ride Panel</span>
+                  <ArrowRight className="w-4 h-4 -rotate-90 text-primary" />
+                </button>
+              </div>
             </motion.div>
           )}
         </AnimatePresence>

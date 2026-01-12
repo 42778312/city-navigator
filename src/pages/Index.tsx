@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import Map from '@/components/Map';
 import RidePanel from '@/components/RidePanel';
 import { PriceBreakdown } from '@/lib/taxiPricing';
+import { TaxiStand } from '@/components/TaxiStand';
 
 interface PriceInfo {
   distance: number;
@@ -21,14 +22,7 @@ const Index = () => {
   const [route, setRoute] = useState<[number, number][] | null>(null);
   const [isMinimized, setIsMinimized] = useState(false);
   const [routeInfo, setRouteInfo] = useState<PriceInfo | null>(null);
-
-  const handlePickupChange = useCallback((location: Location | null) => {
-    setPickup(location);
-  }, []);
-
-  const handleDestinationChange = useCallback((location: Location | null) => {
-    setDestination(location);
-  }, []);
+  const [isTaxiStandOpen, setIsTaxiStandOpen] = useState(false);
 
   const handleRouteCalculated = useCallback((routeGeometry: [number, number][] | null) => {
     setRoute(routeGeometry);
@@ -36,19 +30,17 @@ const Index = () => {
 
   return (
     <div className="relative w-full h-screen overflow-hidden bg-background">
-      {/* Map */}
       <Map
         pickup={pickup?.coords || null}
         destination={destination?.coords || null}
         route={route}
         onMapClick={() => setIsMinimized(true)}
         routeInfo={routeInfo}
+        onCallTaxi={() => setIsTaxiStandOpen(true)}
       />
 
-      {/* Gradient overlay for better readability */}
       <div className="absolute inset-x-0 bottom-0 h-96 bg-gradient-to-t from-background via-background/80 to-transparent pointer-events-none" />
 
-      {/* Logo */}
       <motion.div
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -63,15 +55,16 @@ const Index = () => {
         </div>
       </motion.div>
 
-      {/* Ride Panel */}
       <RidePanel
-        onPickupChange={handlePickupChange}
-        onDestinationChange={handleDestinationChange}
+        onPickupChange={setPickup}
+        onDestinationChange={setDestination}
         onRouteCalculated={handleRouteCalculated}
         onRouteInfoChange={setRouteInfo}
         isMinimized={isMinimized}
         onToggleMinimize={() => setIsMinimized(!isMinimized)}
       />
+
+      <TaxiStand isOpen={isTaxiStandOpen} onOpenChange={setIsTaxiStandOpen} />
     </div>
   );
 };
