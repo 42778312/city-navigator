@@ -143,7 +143,7 @@ const RidePanel = ({
             break;
           case error.POSITION_UNAVAILABLE:
             title = "Position nicht verfügbar";
-            message = "Standort ist derzeit nicht verfügbar. Überprüfen Sie Ihre GPS-Einstellungen.";
+            message = "Ihr Gerät konnte den Standort nicht ermitteln. Stellen Sie sicher, dass GPS/Standortdienste aktiviert sind oder nutzen Sie ein Gerät mit GPS-Unterstützung.";
             break;
           case error.TIMEOUT:
             title = "Zeitüberschreitung";
@@ -158,9 +158,9 @@ const RidePanel = ({
         });
       },
       {
-        enableHighAccuracy: true,
-        timeout: 10000,
-        maximumAge: 0
+        enableHighAccuracy: false,
+        timeout: 15000,
+        maximumAge: 30000
       }
     );
   };
