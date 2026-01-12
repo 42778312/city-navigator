@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>🚕 RideFlow - Address Test</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🚕</text></svg>">
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      max-width: 600px;
+      margin: 50px auto;
+      padding: 20px;
+      background: #f5f5f5;
+    }
+    .container {
+      background: white;
+      padding: 30px;
+      border-radius: 12px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+    h1 {
+      color: #333;
+      margin-bottom: 10px;
+    }
+    .subtitle {
+      color: #666;
+      margin-bottom: 30px;
+    }
+    input {
+      width: 100%;
+      padding: 12px;
+      font-size: 16px;
+      border: 2px solid #ddd;
+      border-radius: 8px;
+      box-sizing: border-box;
+      margin-bottom: 20px;
+      transition: border-color 0.3s;
+    }
+    input:focus {
+      outline: none;
+      border-color: #4CAF50;
+    }
+    .results {
+      margin-top: 20px;
+    }
+    .result-item {
+      padding: 12px;
+      border-bottom: 1px solid #eee;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .result-item:hover {
+      background: #f9f9f9;
+    }
+    .result-line1 {
+      font-weight: 600;
+      color: #333;
+      margin-bottom: 4px;
+    }
+    .result-line2 {
+      font-size: 14px;
+      color: #666;
+    }
+    .coords {
+      font-size: 12px;
+      color: #999;
+      margin-top: 4px;
+      font-family: monospace;
+    }
+    .loading {
+      text-align: center;
+      color: #666;
+      padding: 20px;
+    }
+    .error {
+      background: #fee;
+      color: #c33;
+      padding: 12px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+    }
+    .info {
+      background: #e3f2fd;
+      padding: 12px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+      font-size: 14px;
+    }
+    .selected {
+      background: #e8f5e9;
+      padding: 20px;
+      border-radius: 8px;
+      margin-top: 20px;
+    }
+    .selected h3 {
+      margin-top: 0;
+      color: #2e7d32;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🚕 Photon API Test</h1>
+    <p class="subtitle">Address Autocomplete für Landkreis Konstanz</p>
+    
+    <div class="info">
+      ℹ️ Geben Sie mindestens 3 Zeichen ein. Ergebnisse sind auf Landkreis Konstanz beschränkt.
+    </div>
+
+    <input 
+      type="text" 
+      id="searchInput" 
+      placeholder="Place or street name (e.g. HTWG, Grey, Seestraße)"
+      autocomplete="off"
+    />
+
+    <div id="error" class="error" style="display: none;"></div>
+    <div id="loading" class="loading" style="display: none;">🔍 Suche läuft...</div>
+    <div id="results" class="results"></div>
+    <div id="selected" class="selected" style="display: none;"></div>
+  </div>
+
+  <script>
+    const API_URL = 'https://photon.komoot.io/api/';
+    let debounceTimer;
+
+    const searchInput = document.getElementById('searchInput');
+    const resultsDiv = document.getElementById('results');
+    const loadingDiv = document.getElementById('loading');
+    const errorDiv = document.getElementById('error');
+    const selectedDiv = document.getElementById('selected');
+
+    searchInput.addEventListener('input', (e) => {
+      const query = e.target.value.trim();
+      
+      clearTimeout(debounceTimer);
+      
+      if (query.length < 3) {
+        resultsDiv.innerHTML = '';
+        loadingDiv.style.display = 'none';
+        errorDiv.style.display = 'none';
+        return;
+      }
+
+      loadingDiv.style.display = 'block';
+      resultsDiv.innerHTML = '';
+      errorDiv.style.display = 'none';
+
+      debounceTimer = setTimeout(() => searchAddress(query), 300);
+    });
+
+    async function searchAddress(query) {
+      try {
+        const params = new URLSearchParams({
+          q: query,
+          lang: 'de',
+          limit: '10',
+          lat: '47.6779',   // Konstanz center
+          lon: '9.1732',
+          bbox: '8.65,47.55,9.35,47.85'  // Landkreis Konstanz
+        });
+
+        const response = await fetch(`${API_URL}?${params.toString()}`);
+        
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const data = await response.json();
+        
+        loadingDiv.style.display = 'none';
+
+        // Filter for German addresses
+        const germanResults = data.features.filter(
+          f => f.properties.countrycode === 'DE'
+        );
+        
+        const results = germanResults.length > 0 ? germanResults : data.features;
+
+        if (results.length === 0) {
+          resultsDiv.innerHTML = '<p style="padding: 20px; text-align: center; color: #999;">Keine Ergebnisse gefunden</p>';
+          return;
+        }
+
+        displayResults(results);
+      } catch (error) {
+        loadingDiv.style.display = 'none';
+        errorDiv.textContent = `❌ Fehler: ${error.message}`;
+        errorDiv.style.display = 'block';
+        console.error('Search error:', error);
+      }
+    }
+
+    function displayResults(features) {
+      resultsDiv.innerHTML = features.map(feature => {
+        const props = feature.properties;
+        const [lon, lat] = feature.geometry.coordinates;
+
+        // Format address - prioritize place name
+        let line1 = '';
+        let line2 = '';
+        
+        // If there's a place name with address details
+        if (props.name && (props.street || props.city)) {
+          line1 = props.name;
+          
+          const addressParts = [];
+          if (props.street) {
+            let streetAddr = props.street;
+            if (props.housenumber) streetAddr += ` ${props.housenumber}`;
+            addressParts.push(streetAddr);
+          }
+          if (props.postcode) addressParts.push(props.postcode);
+          if (props.city) addressParts.push(props.city);
+          line2 = addressParts.join(', ') || 'Konstanz';
+        }
+        // If only street address
+        else if (props.street) {
+          line1 = props.street;
+          if (props.housenumber) line1 += ` ${props.housenumber}`;
+          
+          const locationParts = [];
+          if (props.postcode) locationParts.push(props.postcode);
+          if (props.city) locationParts.push(props.city);
+          else if (props.district) locationParts.push(props.district);
+          line2 = locationParts.join(' ') || 'Konstanz';
+        }
+        // If only place name
+        else if (props.name) {
+          line1 = props.name;
+          const locationParts = [];
+          if (props.postcode) locationParts.push(props.postcode);
+          if (props.city) locationParts.push(props.city);
+          else if (props.district) locationParts.push(props.district);
+          line2 = locationParts.join(' ') || 'Konstanz';
+        }
+        // Fallback
+        else {
+          line1 = 'Adresse';
+          line2 = props.city || 'Konstanz';
+        }
+
+        return `
+          <div class="result-item" onclick='selectAddress(${JSON.stringify({
+            line1, line2, lat, lon, props
+          })})'>
+            <div class="result-line1">📍 ${line1}</div>
+            <div class="result-line2">${line2}</div>
+            <div class="coords">Lat: ${lat.toFixed(4)}, Lon: ${lon.toFixed(4)}</div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function selectAddress(address) {
+      selectedDiv.style.display = 'block';
+      selectedDiv.innerHTML = `
+        <h3>✅ Ausgewählte Adresse</h3>
+        <p><strong>${address.line1}</strong><br>${address.line2}</p>
+        <p style="margin-top: 15px; font-size: 14px;">
+          <strong>Koordinaten:</strong><br>
+          Latitude: ${address.lat.toFixed(6)}<br>
+          Longitude: ${address.lon.toFixed(6)}
+        </p>
+        <details style="margin-top: 15px;">
+          <summary style="cursor: pointer; color: #666;">Alle Komponenten anzeigen</summary>
+          <pre style="margin-top: 10px; background: #f5f5f5; padding: 10px; border-radius: 4px; overflow-x: auto;">${JSON.stringify({
+            street: address.props.street,
+            houseNumber: address.props.housenumber,
+            postalCode: address.props.postcode,
+            city: address.props.city,
+            district: address.props.district,
+            state: address.props.state,
+            country: address.props.country,
+            latitude: address.lat,
+            longitude: address.lon
+          }, null, 2)}</pre>
+        </details>
+      `;
+      
+      resultsDiv.innerHTML = '';
+      searchInput.value = address.line1;
+    }
+
+    // Test examples
+    console.log('🧪 Photon API Test loaded');
+    console.log('Try searching for:');
+    console.log('- Grey (place name)');
+    console.log('- HTWG Konstanz');
+    console.log('- Seestraße (street name)');
+    console.log('- Münster (landmark)');
+    console.log('- Radolfzell Bahnhof');
+  </script>
+</body>
+</html>

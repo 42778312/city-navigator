@@ -1,29 +1,24 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { MapPin, Navigation, Loader2, X } from 'lucide-react';
-
-interface SearchResult {
-  display_name: string;
-  lat: string;
-  lon: string;
-}
+import { searchAddress, type AddressResult } from '@/lib/photonApi';
 
 interface SearchInputProps {
   type: 'pickup' | 'destination';
   value: string;
   onChange: (value: string) => void;
-  onSelect: (result: SearchResult) => void;
+  onSelect: (result: AddressResult) => void;
   placeholder: string;
 }
 
 const SearchInput = ({ type, value, onChange, onSelect, placeholder }: SearchInputProps) => {
-  const [results, setResults] = useState<SearchResult[]>([]);
+  const [results, setResults] = useState<AddressResult[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isFocused, setIsFocused] = useState(false);
   const debounceRef = useRef<NodeJS.Timeout>();
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const searchAddress = useCallback(async (query: string) => {
+  const performSearch = useCallback(async (query: string) => {
     if (query.length < 3) {
       setResults([]);
       return;
@@ -31,11 +26,12 @@ const SearchInput = ({ type, value, onChange, onSelect, placeholder }: SearchInp
 
     setIsLoading(true);
     try {
-      const response = await fetch(
-        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=5&addressdetails=1`
-      );
-      const data = await response.json();
-      setResults(data);
+      // Search using Photon API with German language and Germany bias
+      const addresses = await searchAddress(query, {
+        lang: 'de',
+        limit: 8,
+      });
+      setResults(addresses);
     } catch (error) {
       console.error('Search error:', error);
       setResults([]);
@@ -50,7 +46,7 @@ const SearchInput = ({ type, value, onChange, onSelect, placeholder }: SearchInp
     }
 
     debounceRef.current = setTimeout(() => {
-      searchAddress(value);
+      performSearch(value);
     }, 300);
 
     return () => {
@@ -58,9 +54,10 @@ const SearchInput = ({ type, value, onChange, onSelect, placeholder }: SearchInp
         clearTimeout(debounceRef.current);
       }
     };
-  }, [value, searchAddress]);
+  }, [value, performSearch]);
 
-  const handleSelect = (result: SearchResult) => {
+  const handleSelect = (result: AddressResult) => {
+    onChange(result.displayLine1); // Show street + house number in input
     onSelect(result);
     setResults([]);
     setIsFocused(false);
@@ -143,17 +140,22 @@ const SearchInput = ({ type, value, onChange, onSelect, placeholder }: SearchInp
           >
             {results.map((result, index) => (
               <motion.button
-                key={`${result.lat}-${result.lon}`}
+                key={`${result.latitude}-${result.longitude}-${index}`}
                 initial={{ opacity: 0, x: -10 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: index * 0.05 }}
                 onClick={() => handleSelect(result)}
-                className="w-full text-left px-3 py-2.5 rounded-xl hover:bg-muted/50 transition-colors flex items-start gap-3"
+                className="w-full text-left px-3 py-2.5 rounded-xl hover:bg-muted/50 transition-colors flex items-start gap-3 group"
               >
-                <MapPin className="w-4 h-4 text-muted-foreground mt-0.5 flex-shrink-0" />
-                <span className="text-sm text-foreground line-clamp-2">
-                  {result.display_name}
-                </span>
+                <MapPin className="w-4 h-4 text-muted-foreground mt-0.5 flex-shrink-0 group-hover:text-primary transition-colors" />
+                <div className="flex-1 min-w-0">
+                  <div className="text-sm font-medium text-foreground truncate">
+                    {result.displayLine1}
+                  </div>
+                  <div className="text-xs text-muted-foreground mt-0.5 truncate">
+                    {result.displayLine2}
+                  </div>
+                </div>
               </motion.button>
             ))}
           </motion.div>

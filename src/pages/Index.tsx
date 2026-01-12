@@ -2,8 +2,8 @@ import { useState, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import Map from '@/components/Map';
 import RidePanel from '@/components/RidePanel';
-import { PriceBreakdown } from '@/lib/taxiPricing';
 import { TaxiStand } from '@/components/TaxiStand';
+import type { PriceBreakdown } from '@/lib/taxiPricing';
 
 interface PriceInfo {
   distance: number;

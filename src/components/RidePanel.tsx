@@ -2,7 +2,8 @@ import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowRight, Loader2, Car, Sparkles } from 'lucide-react';
 import SearchInput from './SearchInput';
-import { calculateTaxiFare, PriceBreakdown } from '@/lib/taxiPricing';
+import { calculateTaxiFare, type PriceBreakdown } from '@/lib/taxiPricing';
+import type { AddressResult } from '@/lib/photonApi';
 
 interface Location {
   address: string;
@@ -44,16 +45,16 @@ const RidePanel = ({
   const [destinationCoords, setDestinationCoords] = useState<[number, number] | null>(null);
   const [isCalculating, setIsCalculating] = useState(false);
 
-  const handleSelect = (type: 'pickup' | 'destination', result: { display_name: string; lat: string; lon: string }) => {
-    const coords: [number, number] = [parseFloat(result.lon), parseFloat(result.lat)];
-    const location = { address: result.display_name, coords };
+  const handleSelect = (type: 'pickup' | 'destination', result: AddressResult) => {
+    const coords: [number, number] = [result.longitude, result.latitude];
+    const location = { address: result.fullAddress, coords };
 
     if (type === 'pickup') {
-      setPickupAddress(result.display_name);
+      setPickupAddress(result.displayLine1);
       setPickupCoords(coords);
       onPickupChange(location);
     } else {
-      setDestinationAddress(result.display_name);
+      setDestinationAddress(result.displayLine1);
       setDestinationCoords(coords);
       onDestinationChange(location);
     }

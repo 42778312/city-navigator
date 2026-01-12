@@ -1,5 +1,5 @@
 import { Phone } from 'lucide-react';
-import { PriceBreakdown, formatPrice } from '@/lib/taxiPricing';
+import { formatPrice, type PriceBreakdown } from '@/lib/taxiPricing';
 
 interface PricePopupProps {
     priceBreakdown: PriceBreakdown;
