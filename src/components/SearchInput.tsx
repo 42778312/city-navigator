@@ -80,7 +80,7 @@ const SearchInput = ({ type, value, onChange, onSelect, placeholder }: SearchInp
         animate={{
           scale: isFocused ? 1.02 : 1,
         }}
-        className={`glass-input flex items-center gap-3 px-4 py-3 ${
+        className={`glass-input flex items-center gap-2 px-3 py-2 ${
           isFocused ? 'ring-1 ring-primary/50' : ''
         }`}
       >
@@ -88,11 +88,11 @@ const SearchInput = ({ type, value, onChange, onSelect, placeholder }: SearchInp
           animate={{
             scale: isFocused ? 1.1 : 1,
           }}
-          className={`p-2 rounded-lg ${
+          className={`p-1.5 rounded-lg ${
             isPickup ? 'bg-primary/20 text-primary' : 'bg-success/20 text-success'
           }`}
         >
-          <Icon className="w-4 h-4" />
+          <Icon className="w-3.5 h-3.5" />
         </motion.div>
         
         <input
@@ -103,8 +103,8 @@ const SearchInput = ({ type, value, onChange, onSelect, placeholder }: SearchInp
           onFocus={() => setIsFocused(true)}
           onBlur={() => setTimeout(() => setIsFocused(false), 200)}
           placeholder={placeholder}
-          className={`flex-1 bg-transparent outline-none text-foreground placeholder:text-muted-foreground ${
-            isPickup ? 'pr-10' : ''
+          className={`flex-1 bg-transparent outline-none text-sm text-foreground placeholder:text-muted-foreground ${
+            isPickup ? 'pr-8' : ''
           }`}
         />
         
@@ -115,7 +115,7 @@ const SearchInput = ({ type, value, onChange, onSelect, placeholder }: SearchInp
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.8 }}
             >
-              <Loader2 className="w-4 h-4 text-muted-foreground animate-spin" />
+              <Loader2 className="w-3.5 h-3.5 text-muted-foreground animate-spin" />
             </motion.div>
           )}
           {value && !isLoading && (
@@ -124,9 +124,9 @@ const SearchInput = ({ type, value, onChange, onSelect, placeholder }: SearchInp
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.8 }}
               onClick={handleClear}
-              className="p-1 hover:bg-muted rounded-full transition-colors"
+              className="p-0.5 hover:bg-muted rounded-full transition-colors"
             >
-              <X className="w-4 h-4 text-muted-foreground" />
+              <X className="w-3.5 h-3.5 text-muted-foreground" />
             </motion.button>
           )}
         </AnimatePresence>
@@ -138,7 +138,7 @@ const SearchInput = ({ type, value, onChange, onSelect, placeholder }: SearchInp
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
-            className="absolute top-full left-0 right-0 mt-2 glass-panel p-2 z-50 max-h-60 overflow-y-auto"
+            className="absolute top-full left-0 right-0 mt-1.5 glass-panel p-1.5 z-50 max-h-52 overflow-y-auto"
           >
             {results.map((result, index) => (
               <motion.button
@@ -147,14 +147,14 @@ const SearchInput = ({ type, value, onChange, onSelect, placeholder }: SearchInp
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: index * 0.05 }}
                 onClick={() => handleSelect(result)}
-                className="w-full text-left px-3 py-2.5 rounded-xl hover:bg-muted/50 transition-colors flex items-start gap-3 group"
+                className="w-full text-left px-2.5 py-2 rounded-lg hover:bg-muted/50 transition-colors flex items-start gap-2 group"
               >
-                <MapPin className="w-4 h-4 text-muted-foreground mt-0.5 flex-shrink-0 group-hover:text-primary transition-colors" />
+                <MapPin className="w-3.5 h-3.5 text-muted-foreground mt-0.5 flex-shrink-0 group-hover:text-primary transition-colors" />
                 <div className="flex-1 min-w-0">
-                  <div className="text-sm font-medium text-foreground truncate">
+                  <div className="text-xs font-medium text-foreground truncate">
                     {result.displayLine1}
                   </div>
-                  <div className="text-xs text-muted-foreground mt-0.5 truncate">
+                  <div className="text-[10px] text-muted-foreground mt-0.5 truncate">
                     {result.displayLine2}
                   </div>
                 </div>

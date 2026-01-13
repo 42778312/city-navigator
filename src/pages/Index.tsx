@@ -2,6 +2,7 @@ import { useState, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import Map from '@/components/Map';
 import RidePanel from '@/components/RidePanel';
+import NightlifeButton from '@/components/NightlifeButton';
 import { TaxiStand } from '@/components/TaxiStand';
 import type { PriceBreakdown } from '@/lib/taxiPricing';
 
@@ -20,12 +21,18 @@ const Index = () => {
   const [pickup, setPickup] = useState<Location | null>(null);
   const [destination, setDestination] = useState<Location | null>(null);
   const [route, setRoute] = useState<[number, number][] | null>(null);
-  const [isMinimized, setIsMinimized] = useState(false);
+  const [isMinimized, setIsMinimized] = useState(true); // Hidden by default
   const [routeInfo, setRouteInfo] = useState<PriceInfo | null>(null);
   const [isTaxiStandOpen, setIsTaxiStandOpen] = useState(false);
+  const [nightlifeEnabled, setNightlifeEnabled] = useState(false);
+  const [isNightlifeLoading, setIsNightlifeLoading] = useState(false);
 
   const handleRouteCalculated = useCallback((routeGeometry: [number, number][] | null) => {
     setRoute(routeGeometry);
+  }, []);
+
+  const handleNightlifeToggle = useCallback((enabled: boolean) => {
+    setNightlifeEnabled(enabled);
   }, []);
 
   return (
@@ -37,6 +44,8 @@ const Index = () => {
         onMapClick={() => setIsMinimized(true)}
         routeInfo={routeInfo}
         onCallTaxi={() => setIsTaxiStandOpen(true)}
+        nightlifeEnabled={nightlifeEnabled}
+        onNightlifeLoading={setIsNightlifeLoading}
       />
 
       <div className="absolute inset-x-0 bottom-0 h-96 bg-gradient-to-t from-background via-background/80 to-transparent pointer-events-none" />
@@ -54,6 +63,14 @@ const Index = () => {
           <span className="font-display font-bold text-lg text-foreground">RideFlow</span>
         </div>
       </motion.div>
+
+      {/* Nightlife Button */}
+      <div className="absolute top-4 right-4 md:top-6 md:right-6 z-10">
+        <NightlifeButton 
+          onToggle={handleNightlifeToggle} 
+          isLoading={isNightlifeLoading}
+        />
+      </div>
 
       <RidePanel
         onPickupChange={setPickup}
