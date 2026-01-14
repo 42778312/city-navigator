@@ -4,12 +4,12 @@ import 'maplibre-gl/dist/maplibre-gl.css';
 import { createRoot } from 'react-dom/client';
 import PricePopup from './PricePopup';
 import type { PriceBreakdown } from '@/lib/taxiPricing';
-import { 
-  fetchNightlifeVenues, 
-  isEveningTime, 
+import {
+  fetchNightlifeVenues,
+  isEveningTime,
   venuesToGeoJSON,
   getVenueStatusText,
-  type NightlifeVenue 
+  type NightlifeVenue
 } from '@/lib/nightlifeApi';
 
 interface RouteInfo {
@@ -29,12 +29,12 @@ interface MapProps {
   onNightlifeLoading?: (loading: boolean) => void;
 }
 
-const Map = ({ 
-  pickup, 
-  destination, 
-  route, 
-  onMapClick, 
-  routeInfo, 
+const Map = ({
+  pickup,
+  destination,
+  route,
+  onMapClick,
+  routeInfo,
   onCallTaxi,
   nightlifeEnabled = false,
   onNightlifeLoading
@@ -46,7 +46,6 @@ const Map = ({
   const popup = useRef<maplibregl.Popup | null>(null);
   const [nightlifeVenues, setNightlifeVenues] = useState<NightlifeVenue[]>([]);
   const [venuesLoaded, setVenuesLoaded] = useState(false);
-  const animationFrameRef = useRef<number | null>(null);
 
   const createMarkerElement = (type: 'pickup' | 'destination') => {
     const el = document.createElement('div');
@@ -103,7 +102,7 @@ const Map = ({
   // Load nightlife venues on first toggle
   const loadNightlifeVenues = useCallback(async () => {
     if (venuesLoaded || !nightlifeEnabled) return;
-    
+
     try {
       onNightlifeLoading?.(true);
       const venues = await fetchNightlifeVenues();
@@ -133,15 +132,13 @@ const Map = ({
     if (nightlifeEnabled) {
       console.log('➕ Adding nightlife layers...');
       addNightlifeLayers();
-      startNightclubAnimation();
     } else {
       console.log('➖ Removing nightlife layers...');
       removeNightlifeLayers();
-      stopNightclubAnimation();
     }
 
     return () => {
-      stopNightclubAnimation();
+      // Cleanup if needed
     };
   }, [nightlifeEnabled, nightlifeVenues, venuesLoaded]);
 
@@ -277,7 +274,7 @@ const Map = ({
             const accentColor = props?.type === 'nightclub' ? '#ff2e97' : '#ff6b35';
 
             // Create stunning name-only popup
-            new maplibregl.Popup({ 
+            new maplibregl.Popup({
               offset: 15,
               className: 'nightlife-popup',
               maxWidth: '260px',
@@ -327,7 +324,7 @@ const Map = ({
     const mapInstance = map.current;
 
     const layers = ['bars-pubs', 'bars-glow', 'nightclubs', 'nightclubs-glow', 'nightlife-heatmap'];
-    
+
     layers.forEach(layerId => {
       if (mapInstance.getLayer(layerId)) {
         mapInstance.removeLayer(layerId);
@@ -335,14 +332,6 @@ const Map = ({
     });
   };
 
-  // Animate nightclub pulsing effect (optimized)
-  const startNightclubAnimation = () => {
-    // Animation disabled for better performance
-  };
-
-  const stopNightclubAnimation = () => {
-    // Animation disabled for better performance
-  };
 
   useEffect(() => {
     if (map.current && pickup) {
@@ -410,13 +399,13 @@ const Map = ({
 
       if (route && route.length > 0 && pickup && destination) {
         const routeCoordinates = [pickup, ...route, destination];
-        
+
         // Add route source
         mapInstance.addSource('route', {
           type: 'geojson',
           data: { type: 'Feature', properties: {}, geometry: { type: 'LineString', coordinates: routeCoordinates } },
         });
-        
+
         // Add route layers on top of everything (no beforeLayer parameter means they go on top)
         mapInstance.addLayer({
           id: 'route-outline',
@@ -425,7 +414,7 @@ const Map = ({
           layout: { 'line-join': 'round', 'line-cap': 'round' },
           paint: { 'line-color': '#00D9FF', 'line-width': 8, 'line-opacity': 0.3 },
         });
-        
+
         mapInstance.addLayer({
           id: 'route',
           type: 'line',

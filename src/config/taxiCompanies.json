@@ -1,15 +1,26 @@
-
 [
   {
-    "name": "Speedy Cabs",
-    "phone": "555-123-4567"
+    "name": "Taxmobil AG",
+    "phone": "0753180210"
   },
   {
-    "name": "Yellow Taxi",
-    "phone": "555-987-6543"
+    "name": "Taxi Müller",
+    "phone": "0753165300"
   },
   {
-    "name": "Checker Cabs",
-    "phone": "555-555-5555"
+    "name": "City Fuxxx GbR",
+    "phone": "075318029140"
+  },
+  {
+    "name": "Taxi Dornheim GmbH",
+    "phone": "0753167777"
+  },
+  {
+    "name": "Seetaxi",
+    "phone": "0753151000"
+  },
+  {
+    "name": "Taxi24",
+    "phone": "0753166666"
   }
 ]
