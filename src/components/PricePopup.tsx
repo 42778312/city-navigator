@@ -6,9 +6,10 @@ interface PricePopupProps {
     distance: number;
     duration: number;
     onCallTaxi: () => void;
+    disabled?: boolean;
 }
 
-const PricePopup = ({ priceBreakdown, distance, duration, onCallTaxi }: PricePopupProps) => {
+const PricePopup = ({ priceBreakdown, distance, duration, onCallTaxi, disabled }: PricePopupProps) => {
     const formatDuration = (minutes: number) => {
         if (minutes < 60) {
             return `${Math.round(minutes)} min`;
@@ -35,7 +36,8 @@ const PricePopup = ({ priceBreakdown, distance, duration, onCallTaxi }: PricePop
                 </div>
                 <button
                     onClick={onCallTaxi}
-                    className="glow-button text-primary-foreground rounded-full p-3 shadow-lg flex-shrink-0 ml-4"
+                    disabled={disabled}
+                    className={`glow-button text-primary-foreground rounded-full p-3 shadow-lg flex-shrink-0 ml-4 ${disabled ? 'opacity-50 cursor-not-allowed grayscale' : ''}`}
                 >
                     <Phone className="w-5 h-5" />
                 </button>

@@ -1,6 +1,6 @@
 /**
- * Nightlife API - Fetch and manage nightlife venues from OpenStreetMap
- * Uses Overpass API to query bars, pubs, and nightclubs in Konstanz, Germany
+ * nightlife venues from OpenStreetMap
+ * Uses API to show bars, pubs, and nightclubs in Konstanz, Germany
  */
 
 import opening_hours from 'opening_hours';
@@ -9,12 +9,16 @@ export interface NightlifeVenue {
   id: string;
   name: string;
   type: 'bar' | 'pub' | 'nightclub';
-  coordinates: [number, number]; // [lng, lat]
+  coordinates: [number, number];
   openingHours?: string;
-  intensity: number; // For heatmap weighting
+  intensity: number;
   isOpen?: boolean;
   opensAt?: string;
   closesAt?: string;
+  rating: number;
+  imageUrl: string;
+  website?: string;
+  phone?: string;
 }
 
 interface OverpassElement {
@@ -27,6 +31,10 @@ interface OverpassElement {
     name?: string;
     amenity?: string;
     opening_hours?: string;
+    'contact:website'?: string;
+    'contact:phone'?: string;
+    website?: string;
+    phone?: string;
     [key: string]: any;
   };
 }
@@ -58,73 +66,14 @@ out center tags;
 const OVERPASS_API_URL = 'https://overpass-api.de/api/interpreter';
 const OVERPASS_API_URL_FALLBACK = 'https://overpass.kumi.systems/api/interpreter';
 
-// Mock data as fallback when API is unavailable
-const MOCK_VENUES: NightlifeVenue[] = [
-  {
-    id: 'mock-1',
-    name: 'Klimperkasten',
-    type: 'bar',
-    coordinates: [9.1732, 47.6605],
-    intensity: 1,
-    openingHours: 'Mo-Su 18:00-02:00',
-    isOpen: true,
-  },
-  {
-    id: 'mock-2',
-    name: 'Kulturladen',
-    type: 'nightclub',
-    coordinates: [9.1795, 47.6615],
-    intensity: 3,
-    openingHours: 'Fr-Sa 22:00-04:00',
-    isOpen: false,
-  },
-  {
-    id: 'mock-3',
-    name: 'Black Sheep Pub',
-    type: 'pub',
-    coordinates: [9.1765, 47.6595],
-    intensity: 1.5,
-    openingHours: 'Mo-Su 17:00-01:00',
-    isOpen: true,
-  },
-  {
-    id: 'mock-4',
-    name: 'Seewolf',
-    type: 'bar',
-    coordinates: [9.1680, 47.6640],
-    intensity: 1,
-    isOpen: true,
-  },
-  {
-    id: 'mock-5',
-    name: 'Stadtgarten',
-    type: 'nightclub',
-    coordinates: [9.1750, 47.6580],
-    intensity: 3,
-    openingHours: 'Fr-Sa 23:00-05:00',
-    isOpen: false,
-  },
-  {
-    id: 'mock-6',
-    name: 'Kult',
-    type: 'bar',
-    coordinates: [9.1820, 47.6620],
-    intensity: 1,
-    isOpen: true,
-  },
-];
-
 /**
  * Fetch nightlife venues from Overpass API
  */
 export async function fetchNightlifeVenues(): Promise<NightlifeVenue[]> {
-  console.log('🌙 Fetching nightlife venues from Overpass API...');
-  
   // Try primary API
   try {
     const venues = await fetchFromOverpass(OVERPASS_API_URL);
     if (venues.length > 0) {
-      console.log(`✅ Received ${venues.length} venues from primary API`);
       return venues;
     }
   } catch (error) {
@@ -133,19 +82,16 @@ export async function fetchNightlifeVenues(): Promise<NightlifeVenue[]> {
 
   // Try fallback API
   try {
-    console.log('🔄 Trying fallback Overpass API...');
     const venues = await fetchFromOverpass(OVERPASS_API_URL_FALLBACK);
     if (venues.length > 0) {
-      console.log(`✅ Received ${venues.length} venues from fallback API`);
       return venues;
     }
   } catch (error) {
     console.warn('⚠️ Fallback Overpass API failed:', error);
   }
 
-  // Use mock data as last resort
-  console.warn('⚠️ All Overpass APIs failed, using mock data');
-  return MOCK_VENUES;
+  // Both APIs failed
+  throw new Error('All Overpass APIs failed. Unable to fetch nightlife venues.');
 }
 
 /**
@@ -165,7 +111,6 @@ async function fetchFromOverpass(apiUrl: string): Promise<NightlifeVenue[]> {
   }
 
   const data: OverpassResponse = await response.json();
-  console.log(`📦 Overpass returned ${data.elements.length} raw elements`);
 
   // Convert Overpass elements to NightlifeVenue format
   const venues: NightlifeVenue[] = data.elements
@@ -191,9 +136,36 @@ function convertToVenue(element: OverpassElement): NightlifeVenue | null {
   if (!amenity || !['bar', 'pub', 'nightclub'].includes(amenity)) return null;
 
   const type = amenity as 'bar' | 'pub' | 'nightclub';
-  
+
   // Calculate intensity for heatmap (nightclubs = highest)
   const intensity = type === 'nightclub' ? 3 : type === 'pub' ? 1.5 : 1;
+
+  // Generate deterministic pseudo-random rating based on ID
+  const idNum = element.id;
+  const randomRating = 3.5 + (idNum % 15) / 10; // 3.5 to 4.9
+  const rating = Math.round(randomRating * 10) / 10;
+
+  // Pick a random image based on type
+  const images = {
+    nightclub: [
+      'https://images.unsplash.com/photo-1574155376612-c843524b333a?w=800&q=80',
+      'https://images.unsplash.com/photo-1545128485-c400e7702796?w=800&q=80',
+      'https://images.unsplash.com/photo-1566737236500-c8ac43014a67?w=800&q=80'
+    ],
+    bar: [
+      'https://images.unsplash.com/photo-1514362545857-3bc16c4c7d1b?w=800&q=80',
+      'https://images.unsplash.com/photo-1470337458703-46ad1756a187?w=800&q=80',
+      'https://images.unsplash.com/photo-1572116469696-31de0f17cc34?w=800&q=80'
+    ],
+    pub: [
+      'https://images.unsplash.com/photo-1538481199705-c710c4e965fc?w=800&q=80',
+      'https://images.unsplash.com/photo-1587840171670-8b850147754e?w=800&q=80',
+      'https://images.unsplash.com/photo-1622359560415-dc3402030999?w=800&q=80'
+    ]
+  };
+
+  const typeImages = images[type] || images.bar;
+  const imageUrl = typeImages[idNum % typeImages.length];
 
   const venue: NightlifeVenue = {
     id: `${element.type}-${element.id}`,
@@ -202,6 +174,10 @@ function convertToVenue(element: OverpassElement): NightlifeVenue | null {
     coordinates: [lon, lat],
     openingHours: tags.opening_hours,
     intensity,
+    rating,
+    imageUrl,
+    website: tags['contact:website'] || tags.website,
+    phone: tags['contact:phone'] || tags.phone,
   };
 
   // Parse opening hours if available
@@ -231,7 +207,7 @@ function parseOpeningHours(
     const oh = new opening_hours(openingHoursString, {
       lat,
       lon,
-      address: { 
+      address: {
         country_code: 'de',
         state: 'Baden-Württemberg'
       }

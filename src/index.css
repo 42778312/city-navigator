@@ -127,6 +127,19 @@
     stroke-dasharray: 10, 10;
     animation: dash 1s linear infinite;
   }
+
+  /* Responsive Map Mask */
+  .map-mask {
+    mask-image: linear-gradient(to bottom, transparent 0%, black 5%);
+    -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 5%);
+  }
+
+  @media (min-width: 768px) {
+    .map-mask {
+      mask-image: linear-gradient(to right, transparent 0%, black 20%);
+      -webkit-mask-image: linear-gradient(to right, transparent 0%, black 20%);
+    }
+  }
 }
 
 @layer utilities {
@@ -222,8 +235,8 @@
   border: 1px solid hsl(220 15% 28% / 0.6) !important;
   border-radius: 16px !important;
   backdrop-filter: blur(32px) saturate(180%) !important;
-  box-shadow: 
-    0 12px 40px rgba(0, 0, 0, 0.7), 
+  box-shadow:
+    0 12px 40px rgba(0, 0, 0, 0.7),
     0 0 0 1px hsl(220 15% 30% / 0.4),
     0 4px 16px rgba(0, 0, 0, 0.5),
     inset 0 1px 0 hsl(220 15% 35% / 0.1) !important;
@@ -241,10 +254,13 @@
 }
 
 @keyframes pulse {
-  0%, 100% {
+
+  0%,
+  100% {
     opacity: 1;
     transform: scale(1);
   }
+
   50% {
     opacity: 0.6;
     transform: scale(1.2);

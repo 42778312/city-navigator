@@ -4,13 +4,13 @@ export const useAuthState = () => {
     const { isLoaded, isSignedIn, userId, sessionId, getToken, signOut } = useAuth();
     const { signIn } = useSignIn();
 
-    const signInWithGoogle = async () => {
+    const signInWithGoogle = async (redirectPath: string = "/") => {
         if (!signIn) return;
         const origin = window.location.origin;
         return signIn.authenticateWithRedirect({
             strategy: "oauth_google",
             redirectUrl: `${origin}/sso-callback`,
-            redirectUrlComplete: `${origin}/`,
+            redirectUrlComplete: `${origin}${redirectPath}`,
         });
     };
 

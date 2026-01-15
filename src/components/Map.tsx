@@ -3,6 +3,7 @@ import maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { createRoot } from 'react-dom/client';
 import PricePopup from './PricePopup';
+import NightlifePopup from './NightlifePopup';
 import type { PriceBreakdown } from '@/lib/taxiPricing';
 import {
   fetchNightlifeVenues,
@@ -27,6 +28,8 @@ interface MapProps {
   onCallTaxi: () => void;
   nightlifeEnabled?: boolean;
   onNightlifeLoading?: (loading: boolean) => void;
+  isInteractive?: boolean;
+  onInteraction?: () => void;
 }
 
 const Map = ({
@@ -37,13 +40,16 @@ const Map = ({
   routeInfo,
   onCallTaxi,
   nightlifeEnabled = false,
-  onNightlifeLoading
+  onNightlifeLoading,
+  isInteractive = true,
+  onInteraction
 }: MapProps) => {
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<maplibregl.Map | null>(null);
   const pickupMarker = useRef<maplibregl.Marker | null>(null);
   const destinationMarker = useRef<maplibregl.Marker | null>(null);
   const popup = useRef<maplibregl.Popup | null>(null);
+  const nightlifeMarkers = useRef<maplibregl.Marker[]>([]);
   const [nightlifeVenues, setNightlifeVenues] = useState<NightlifeVenue[]>([]);
   const [venuesLoaded, setVenuesLoaded] = useState(false);
 
@@ -96,8 +102,15 @@ const Map = ({
 
       map.current.addControl(new maplibregl.NavigationControl(), 'bottom-right');
       map.current.on('click', () => onMapClick && onMapClick());
+
+      // Track user interaction
+      const triggerInteraction = () => onInteraction?.();
+      map.current.on('mousedown', triggerInteraction);
+      map.current.on('touchstart', triggerInteraction);
+      map.current.on('wheel', triggerInteraction);
+      map.current.on('moveend', triggerInteraction);
     }
-  }, [onMapClick]);
+  }, [onMapClick, onInteraction]);
 
   // Load nightlife venues on first toggle
   const loadNightlifeVenues = useCallback(async () => {
@@ -124,16 +137,13 @@ const Map = ({
 
   // Add/remove nightlife visualization layers based on toggle
   useEffect(() => {
-    console.log('🎨 Layer effect triggered - enabled:', nightlifeEnabled, 'loaded:', venuesLoaded, 'venues:', nightlifeVenues.length);
     if (!map.current || !venuesLoaded || nightlifeVenues.length === 0) return;
 
     const mapInstance = map.current;
 
     if (nightlifeEnabled) {
-      console.log('➕ Adding nightlife layers...');
       addNightlifeLayers();
     } else {
-      console.log('➖ Removing nightlife layers...');
       removeNightlifeLayers();
     }
 
@@ -142,194 +152,105 @@ const Map = ({
     };
   }, [nightlifeEnabled, nightlifeVenues, venuesLoaded]);
 
-  // Add nightlife visualization layers
+  // Add nightlife markers
   const addNightlifeLayers = () => {
     if (!map.current) return;
     const mapInstance = map.current;
 
-    const setupLayers = () => {
-      // Convert venues to GeoJSON
-      const geojson = venuesToGeoJSON(nightlifeVenues);
+    // Clear existing markers first just in case
+    removeNightlifeLayers();
 
-      // Add source
-      if (!mapInstance.getSource('nightlife-venues')) {
-        mapInstance.addSource('nightlife-venues', {
-          type: 'geojson',
-          data: geojson,
-        });
-      } else {
-        // Update existing source
-        const source = mapInstance.getSource('nightlife-venues') as maplibregl.GeoJSONSource;
-        source.setData(geojson);
-      }
+    nightlifeVenues.forEach((venue) => {
+      // Create marker container - this is what maplibre positions
+      // We do NOT want transitions on this element's transform
+      const container = document.createElement('div');
+      container.className = 'nightlife-marker-container';
+      container.style.cssText = `
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 0;
+        height: 0;
+        overflow: visible;
+      `;
 
-      // Add heatmap layer with neon gradient (Snapchat-style)
-      if (!mapInstance.getLayer('nightlife-heatmap')) {
-        mapInstance.addLayer({
-          id: 'nightlife-heatmap',
-          type: 'heatmap',
-          source: 'nightlife-venues',
-          paint: {
-            // Simplified weight for performance
-            'heatmap-weight': 0.7,
-            'heatmap-intensity': 1.0,
-            // Simplified neon gradient
-            'heatmap-color': [
-              'interpolate',
-              ['linear'],
-              ['heatmap-density'],
-              0, 'rgba(255, 107, 53, 0)',
-              0.3, 'rgba(255, 107, 53, 0.4)',
-              0.6, 'rgba(255, 46, 151, 0.6)',
-              1, 'rgba(157, 78, 221, 0.9)',
-            ],
-            'heatmap-radius': 25,
-            'heatmap-opacity': 0.5,
-          },
-        });
-      }
+      // Create the styled pill element
+      const pill = document.createElement('div');
+      pill.className = 'nightlife-marker-pill';
+      pill.style.cssText = `
+        background-color: #0f1115;
+        color: white;
+        padding: 6px 10px;
+        border-radius: 20px;
+        font-family: 'Inter', sans-serif;
+        font-weight: 600;
+        font-size: 13px;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+        cursor: pointer;
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), background-color 0.2s;
+        z-index: 10;
+        transform-origin: center center;
+        white-space: nowrap;
+      `;
 
-      // Add nightclub glow layer (static for performance)
-      if (!mapInstance.getLayer('nightclubs-glow')) {
-        mapInstance.addLayer({
-          id: 'nightclubs-glow',
-          type: 'circle',
-          source: 'nightlife-venues',
-          filter: ['==', ['get', 'type'], 'nightclub'],
-          paint: {
-            'circle-radius': 25,
-            'circle-color': '#ff2e97',
-            'circle-blur': 1.2,
-            'circle-opacity': 0.5,
-          },
-        });
-      }
+      // Star icon + Rating
+      pill.innerHTML = `
+        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="white" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
+        <span>${venue.rating.toFixed(1)}</span>
+      `;
 
-      // Add nightclub markers
-      if (!mapInstance.getLayer('nightclubs')) {
-        mapInstance.addLayer({
-          id: 'nightclubs',
-          type: 'circle',
-          source: 'nightlife-venues',
-          filter: ['==', ['get', 'type'], 'nightclub'],
-          paint: {
-            'circle-radius': 10,
-            'circle-color': '#ff2e97',
-            'circle-opacity': 1,
-            'circle-stroke-width': 2,
-            'circle-stroke-color': '#ffffff',
-            'circle-stroke-opacity': 0.9,
-          },
-        });
-      }
+      // Hover state - animate the PILL, not the container
+      pill.onmouseenter = () => {
+        pill.style.transform = 'scale(1.15) translateY(-2px)';
+        pill.style.backgroundColor = '#000000';
+        pill.style.borderColor = 'white';
+        pill.style.zIndex = '50';
+      };
 
-      // Add bars/pubs glow layer (static for performance)
-      if (!mapInstance.getLayer('bars-glow')) {
-        mapInstance.addLayer({
-          id: 'bars-glow',
-          type: 'circle',
-          source: 'nightlife-venues',
-          filter: ['in', ['get', 'type'], ['literal', ['bar', 'pub']]],
-          paint: {
-            'circle-radius': 18,
-            'circle-color': '#ff6b35',
-            'circle-blur': 1.2,
-            'circle-opacity': 0.4,
-          },
-        });
-      }
+      pill.onmouseleave = () => {
+        pill.style.transform = 'scale(1) translateY(0)';
+        pill.style.backgroundColor = '#0f1115';
+        pill.style.borderColor = 'rgba(255, 255, 255, 0.15)';
+        pill.style.zIndex = '10';
+      };
 
-      // Add bars/pubs markers
-      if (!mapInstance.getLayer('bars-pubs')) {
-        mapInstance.addLayer({
-          id: 'bars-pubs',
-          type: 'circle',
-          source: 'nightlife-venues',
-          filter: ['in', ['get', 'type'], ['literal', ['bar', 'pub']]],
-          paint: {
-            'circle-radius': 8,
-            'circle-color': '#ff6b35',
-            'circle-opacity': 1,
-            'circle-stroke-width': 2,
-            'circle-stroke-color': '#ffffff',
-            'circle-stroke-opacity': 0.8,
-          },
-        });
-      }
+      container.appendChild(pill);
 
-      // Add click handlers for venue popups
-      ['nightclubs', 'bars-pubs'].forEach((layerId) => {
-        mapInstance.on('click', layerId, (e) => {
-          if (e.features && e.features.length > 0) {
-            const feature = e.features[0];
-            const coords = (feature.geometry as any).coordinates;
-            const props = feature.properties;
+      // Create Custom Popup
+      const popupNode = document.createElement('div');
+      const root = createRoot(popupNode);
+      root.render(
+        <NightlifePopup venue={venue} />
+      );
 
-            // Find the full venue data
-            const venue = nightlifeVenues.find(v => v.id === props?.id);
-            if (!venue) return;
+      const markerPopup = new maplibregl.Popup({
+        offset: 25, // adjusted for pill size
+        closeButton: false,
+        maxWidth: '350px',
+        className: 'nightlife-popup-container'
+      }).setDOMContent(popupNode);
 
-            // Determine icon based on type
-            const venueIcon = props?.type === 'nightclub' ? '🌙' : props?.type === 'pub' ? '🍺' : '🍸';
-            const accentColor = props?.type === 'nightclub' ? '#ff2e97' : '#ff6b35';
+      // Create Marker
+      const marker = new maplibregl.Marker({
+        element: container,
+        anchor: 'center'
+      })
+        .setLngLat(venue.coordinates)
+        .setPopup(markerPopup)
+        .addTo(mapInstance);
 
-            // Create stunning name-only popup
-            new maplibregl.Popup({
-              offset: 15,
-              className: 'nightlife-popup',
-              maxWidth: '260px',
-              closeButton: false
-            })
-              .setLngLat(coords)
-              .setHTML(`
-                <div style="font-family: 'Space Grotesk', 'Inter', system-ui, sans-serif; padding: 0; position: relative;">
-                  <div style="display: flex; align-items: center; gap: 12px;">
-                    <div style="width: 40px; height: 40px; border-radius: 12px; background: linear-gradient(135deg, ${accentColor}25, ${accentColor}10); display: flex; align-items: center; justify-content: center; font-size: 20px; flex-shrink: 0; box-shadow: 0 4px 12px ${accentColor}20;">
-                      ${venueIcon}
-                    </div>
-                    <div style="flex: 1; min-width: 0;">
-                      <div style="font-size: 17px; font-weight: 800; color: hsl(0 0% 98%); line-height: 1.3; letter-spacing: -0.02em; text-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);">
-                        ${props?.name || 'Unnamed Venue'}
-                      </div>
-                    </div>
-                  </div>
-                  <div style="position: absolute; top: -2px; right: -2px; width: 8px; height: 8px; border-radius: 50%; background: ${accentColor}; box-shadow: 0 0 8px ${accentColor}, 0 0 16px ${accentColor}60; animation: pulse 2s ease-in-out infinite;"></div>
-                </div>
-              `)
-              .addTo(mapInstance);
-          }
-        });
-
-        // Change cursor on hover
-        mapInstance.on('mouseenter', layerId, () => {
-          mapInstance.getCanvas().style.cursor = 'pointer';
-        });
-
-        mapInstance.on('mouseleave', layerId, () => {
-          mapInstance.getCanvas().style.cursor = '';
-        });
-      });
-    };
-
-    if (mapInstance.isStyleLoaded()) {
-      setupLayers();
-    } else {
-      mapInstance.once('load', setupLayers);
-    }
+      nightlifeMarkers.current.push(marker);
+    });
   };
 
-  // Remove nightlife layers
+  // Remove nightlife markers
   const removeNightlifeLayers = () => {
-    if (!map.current) return;
-    const mapInstance = map.current;
-
-    const layers = ['bars-pubs', 'bars-glow', 'nightclubs', 'nightclubs-glow', 'nightlife-heatmap'];
-
-    layers.forEach(layerId => {
-      if (mapInstance.getLayer(layerId)) {
-        mapInstance.removeLayer(layerId);
-      }
-    });
+    nightlifeMarkers.current.forEach(marker => marker.remove());
+    nightlifeMarkers.current = [];
   };
 
 
@@ -371,6 +292,7 @@ const Map = ({
             distance={routeInfo.distance}
             duration={routeInfo.duration}
             onCallTaxi={onCallTaxi}
+            disabled={!isInteractive}
           />
         );
 
