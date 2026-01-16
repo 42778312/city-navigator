@@ -1,0 +1,32 @@
+
+> vite_react_shadcn_ts@0.0.0 build
+> vite build
+
+vite v5.4.21 building for production...
+transforming...
+✓ 1948 modules transformed.
+x Build failed in 3.88s
+error during build:
+[vite-plugin-pwa:build] [plugin vite-plugin-pwa:build] src/lib/carnavalIcons.ts (13:9): There was an error during the build:
+  Transform failed with 1 error:
+/home/debian/git/city-navigator/src/lib/carnavalIcons.ts:13:9: ERROR: Expected ">" but found "width"
+Additionally, handling the error in the 'buildEnd' hook caused the following error:
+  Transform failed with 1 error:
+/home/debian/git/city-navigator/src/lib/carnavalIcons.ts:13:9: ERROR: Expected ">" but found "width"
+file: /home/debian/git/city-navigator/src/lib/carnavalIcons.ts:13:9
+
+Expected ">" but found "width"
+11 |  
+12 |  export const MaskIcon: React.FC<IconProps> = ({ size = 24, ...props }) => (
+13 |      <svg width= { size } height = { size } viewBox = "0 0 100 60" fill = "none" xmlns = "http://www.w3.org/2000/svg" { ...props }>
+   |           ^
+14 |          <path d="M10 20C10 5 45 5 50 25C55 5 90 5 90 20C90 45 70 55 50 55C30 55 10 45 10 20Z" fill = "#91318D" stroke = "#DAA520" strokeWidth = "2" />
+15 |              <circle cx="30" cy = "25" r = "8" fill = "#F9C523" />
+
+    at getRollupError (file:///home/debian/git/city-navigator/node_modules/rollup/dist/es/shared/parseAst.js:401:41)
+    at file:///home/debian/git/city-navigator/node_modules/rollup/dist/es/shared/node-entry.js:23467:39
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async catchUnfinishedHookActions (file:///home/debian/git/city-navigator/node_modules/rollup/dist/es/shared/node-entry.js:22925:16)
+    at async rollupInternal (file:///home/debian/git/city-navigator/node_modules/rollup/dist/es/shared/node-entry.js:23450:5)
+    at async build (file:///home/debian/git/city-navigator/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:65709:14)
+    at async CAC.<anonymous> (file:///home/debian/git/city-navigator/node_modules/vite/dist/node/cli.js:829:5)

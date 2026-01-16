@@ -9,7 +9,7 @@ const Snowfall: React.FC = () => {
         return Array.from({ length: SNOWFLAKE_COUNT }).map((_, i) => ({
             id: i,
             x: Math.random() * 100, // horizontal position %
-            size: Math.random() * 4 + 2, // size in px
+            size: Math.random() * 8 + 4, // size in px (increased range)
             duration: Math.random() * 10 + 10, // speed in seconds
             delay: Math.random() * 10, // start delay
             drift: (Math.random() - 0.5) * 40, // horizontal drift
@@ -33,7 +33,7 @@ const Snowfall: React.FC = () => {
                         delay: flake.delay,
                         ease: "linear"
                     }}
-                    className="absolute bg-white/30 rounded-full blur-[1px] top-0"
+                    className="absolute bg-white/60 rounded-full blur-[0.5px] top-0"
                     style={{
                         left: `${flake.x}%`,
                         width: flake.size,
