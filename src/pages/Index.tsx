@@ -6,7 +6,7 @@ import NightlifeButton from '@/components/NightlifeButton';
 import { TaxiStand } from '@/components/TaxiStand';
 import Snowfall from '@/components/Snowfall';
 import type { PriceBreakdown } from '@/lib/taxiPricing';
-import { UserButton } from "@clerk/clerk-react";
+import { UserButton, useClerk } from "@clerk/clerk-react";
 import { useAuthState } from "@/features/auth";
 
 interface PriceInfo {
@@ -43,6 +43,7 @@ const translations = {
 
 const Index = ({ className = "w-full h-full", isDemo = false, lang = 'de' }: IndexProps) => {
   const { isSignedIn, signInWithGoogle } = useAuthState();
+  const { openSignIn } = useClerk();
   const t = translations[lang];
   const [pickup, setPickup] = useState<Location | null>(null);
   const [destination, setDestination] = useState<Location | null>(null);
@@ -52,18 +53,39 @@ const Index = ({ className = "w-full h-full", isDemo = false, lang = 'de' }: Ind
   const [isTaxiStandOpen, setIsTaxiStandOpen] = useState(false);
   const [nightlifeEnabled, setNightlifeEnabled] = useState(isDemo);
   const [isNightlifeLoading, setIsNightlifeLoading] = useState(false);
-  const [showLoginHint, setShowLoginHint] = useState(false);
+  const [showLoginHint, setShowLoginHint] = useState(() => {
+    return isDemo && localStorage.getItem('login-hint-forced') === 'true';
+  });
+  const [isHintForced, setIsHintForced] = useState(() => {
+    return isDemo && localStorage.getItem('login-hint-forced') === 'true';
+  });
   const [hasInteracted, setHasInteracted] = useState(false);
 
   useEffect(() => {
-    if (isDemo && hasInteracted && !showLoginHint) {
+    if (isDemo && hasInteracted && !isHintForced) {
       const timer = setTimeout(() => {
         setShowLoginHint(true);
-      }, 60000); // 60 seconds
+        setIsHintForced(true);
+        localStorage.setItem('login-hint-forced', 'true');
+      }, 180000); // 180 seconds = 3 minutes
 
       return () => clearTimeout(timer);
     }
-  }, [isDemo, hasInteracted, showLoginHint]);
+  }, [isDemo, hasInteracted, isHintForced]);
+
+  // Handle manual trigger (e.g. from call button) to also persist
+  useEffect(() => {
+    if (showLoginHint && isDemo) {
+      localStorage.setItem('login-hint-forced', 'true');
+    }
+  }, [showLoginHint, isDemo]);
+
+  // Clear forced login state if user successfully signs in
+  useEffect(() => {
+    if (isSignedIn) {
+      localStorage.removeItem('login-hint-forced');
+    }
+  }, [isSignedIn]);
 
   const handleMapInteraction = useCallback(() => {
     if (!hasInteracted) {
@@ -88,7 +110,7 @@ const Index = ({ className = "w-full h-full", isDemo = false, lang = 'de' }: Ind
         route={route}
         onMapClick={() => setIsMinimized(true)}
         routeInfo={routeInfo}
-        onCallTaxi={() => setIsTaxiStandOpen(true)}
+        onCallTaxi={() => isDemo ? setShowLoginHint(true) : setIsTaxiStandOpen(true)}
         nightlifeEnabled={nightlifeEnabled}
         onNightlifeLoading={setIsNightlifeLoading}
         isInteractive={!isDemo}
@@ -164,12 +186,15 @@ const Index = ({ className = "w-full h-full", isDemo = false, lang = 'de' }: Ind
             animate={{ opacity: 1, scale: 1 }}
             className="relative bg-[#12141a] border border-white/10 p-6 rounded-2xl max-w-sm w-full text-center shadow-2xl"
           >
-            <button
-              onClick={() => setShowLoginHint(false)}
-              className="absolute top-3 right-3 text-gray-400 hover:text-white transition-colors"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-            </button>
+            {isDemo && !isHintForced && (
+              <button
+                onClick={() => setShowLoginHint(false)}
+                className="absolute top-3 right-3 text-gray-400 hover:text-white transition-colors p-1"
+                aria-label="Close"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+              </button>
+            )}
 
             <div className="w-12 h-12 bg-purple-500/20 rounded-full flex items-center justify-center mx-auto mb-4 text-purple-400">
               <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4" /><polyline points="10 17 15 12 10 7" /><line x1="15" x2="3" y1="12" y2="12" /></svg>
@@ -179,7 +204,7 @@ const Index = ({ className = "w-full h-full", isDemo = false, lang = 'de' }: Ind
               {t.hintDescription}
             </p>
             <button
-              onClick={() => signInWithGoogle('/map')}
+              onClick={() => openSignIn({ forceRedirectUrl: '/map' })}
               className="w-full bg-[#7C3AED] hover:bg-[#6D28D9] text-white font-medium py-3 rounded-xl transition-all shadow-lg shadow-purple-900/20"
             >
               {t.hintButton}

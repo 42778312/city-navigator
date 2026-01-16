@@ -13,7 +13,7 @@ const translations = {
         heroDescription: "Check live auf der Map, wo heute was geht. Bars, Clubs & Partys mit Stimmung, Öffnungszeiten und Preisen. Taxi-Preis schnell berechnen, Route sehen und sicher nach Hause kommen.",
         startNow: "Jetzt starten",
         login: "Login / Registrieren",
-        footer: "Alles in Einem!"
+        footer: "made with ❤️ in Konstanz"
     },
     en: {
         heroTitle: "What's happening in Konstanz?",
@@ -21,7 +21,7 @@ const translations = {
         heroDescription: "Check the map live to see what's going on today. Bars, clubs & parties with vibes, opening hours and prices. Calculate taxi prices quickly, see the route and get home safely.",
         startNow: "Start now",
         login: "Login / Sign Up",
-        footer: "All In One!"
+        footer: "made with ❤️ in Konstanz"
     }
 };
 
@@ -53,11 +53,11 @@ const Landing = () => {
     };
 
     const scrollToTop = () => {
-        heroRef.current?.scrollIntoView({ behavior: 'smooth' });
+        window.scrollTo({ top: 0, behavior: 'smooth' });
     };
 
     return (
-        <div className="min-h-screen bg-[#0B0D12] text-white overflow-x-hidden font-sans selection:bg-purple-500/30">
+        <div className="min-h-screen md:h-screen bg-[#0B0D12] text-white overflow-x-hidden md:overflow-hidden font-sans selection:bg-purple-500/30 flex flex-col">
             {/* Winter Effect */}
             <Snowfall />
 
@@ -77,7 +77,7 @@ const Landing = () => {
             />
 
             {/* Header */}
-            <header className="relative z-50 mt-6 mx-auto max-w-5xl px-6 py-3 flex items-center justify-between rounded-full border border-white/10 bg-white/5 backdrop-blur-md shadow-lg">
+            <header className="relative md:absolute md:top-6 md:left-0 md:right-0 z-50 mt-6 md:mt-0 mx-auto max-w-5xl px-6 py-3 flex items-center justify-between rounded-full border border-white/10 bg-white/5 backdrop-blur-md shadow-lg">
                 <div className="flex items-center gap-2">
                     <div className="w-8 h-8 rounded-lg bg-purple-600 flex items-center justify-center">
                         <svg viewBox="0 0 24 24" className="w-5 h-5 text-white fill-current">
@@ -112,12 +112,12 @@ const Landing = () => {
             </header>
 
             {/* Main Content Layout container */}
-            <div className="relative w-full flex flex-col">
+            <div className="relative w-full flex-1 flex flex-col md:flex-row">
 
                 {/* Hero Content Section */}
                 <main
                     ref={heroRef}
-                    className="relative z-10 px-6 md:px-16 pt-32 pb-4 md:pb-20 max-w-5xl md:min-h-screen flex flex-col justify-center"
+                    className="relative z-10 px-6 md:px-16 pt-32 md:pt-0 pb-4 md:pb-0 max-w-5xl md:flex-1 flex flex-col justify-center"
                 >
                     <div className="space-y-8">
                         <AnimatePresence mode="wait">
@@ -153,7 +153,7 @@ const Landing = () => {
                 {/* Demo Map Section - sequential on mobile, fixed on desktop */}
                 <div
                     ref={mapRef}
-                    className="relative md:fixed top-0 right-0 w-full md:w-[60%] h-[800px] md:h-full z-0 pointer-events-auto map-mask mt-4 md:mt-0 border-t border-b md:border-none border-white/5 overflow-hidden"
+                    className="relative md:fixed top-0 right-0 w-full md:w-[60%] h-[800px] md:h-screen z-0 pointer-events-auto map-mask mt-4 md:mt-0 border-t border-b md:border-none border-white/5 overflow-hidden"
                 >
                     {/* Floating Navigation Arrows - Mobile/iPad only, tucked in left corner */}
                     <div className="lg:hidden absolute top-4 left-4 z-50">
@@ -172,6 +172,8 @@ const Landing = () => {
                     <div className="lg:hidden absolute bottom-4 left-4 z-50">
                         <motion.button
                             onClick={scrollToTop}
+                            animate={{ y: [0, -10, 0] }}
+                            transition={{ repeat: Infinity, duration: 2 }}
                             className="bg-white/10 backdrop-blur-md border border-white/20 p-2.5 rounded-full shadow-lg"
                         >
                             <ChevronUp className="w-6 h-6 text-white" />
@@ -182,7 +184,7 @@ const Landing = () => {
             </div>
 
             {/* In-flow Footer */}
-            <footer className="relative z-50 py-12 text-center text-gray-500 font-medium text-sm">
+            <footer className="relative md:absolute md:bottom-12 md:left-16 z-50 py-12 md:py-0 text-center md:text-left text-gray-500 font-medium text-sm">
                 {t.footer}
             </footer>
         </div>

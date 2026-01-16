@@ -36,8 +36,7 @@ const PricePopup = ({ priceBreakdown, distance, duration, onCallTaxi, disabled }
                 </div>
                 <button
                     onClick={onCallTaxi}
-                    disabled={disabled}
-                    className={`glow-button text-primary-foreground rounded-full p-3 shadow-lg flex-shrink-0 ml-4 ${disabled ? 'opacity-50 cursor-not-allowed grayscale' : ''}`}
+                    className="glow-button text-primary-foreground rounded-full p-3 shadow-lg flex-shrink-0 ml-4 active:scale-95 transition-transform"
                 >
                     <Phone className="w-5 h-5" />
                 </button>
