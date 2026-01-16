@@ -30,6 +30,7 @@ interface MapProps {
   onNightlifeLoading?: (loading: boolean) => void;
   isInteractive?: boolean;
   onInteraction?: () => void;
+  viewMode?: '2D' | '3D';
 }
 
 const Map = ({
@@ -42,7 +43,8 @@ const Map = ({
   nightlifeEnabled = false,
   onNightlifeLoading,
   isInteractive = true,
-  onInteraction
+  onInteraction,
+  viewMode = '3D'
 }: MapProps) => {
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<maplibregl.Map | null>(null);
@@ -71,33 +73,50 @@ const Map = ({
 
   useEffect(() => {
     if (mapContainer.current && !map.current) {
-      // Using ultra-dark minimal style
       map.current = new maplibregl.Map({
         container: mapContainer.current,
-        style: {
-          version: 8,
-          sources: {
-            'dark-tiles': {
-              type: 'raster',
-              tiles: [
-                'https://a.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}@2x.png',
-                'https://b.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}@2x.png',
-                'https://c.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}@2x.png',
-              ],
-              tileSize: 256,
-              attribution: '© <a href="https://carto.com/">CARTO</a> © <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
-            },
-          },
-          layers: [{
-            id: 'dark-background',
-            type: 'raster',
-            source: 'dark-tiles',
-            minzoom: 0,
-            maxzoom: 22,
-          }],
-        },
-        center: [9.1732, 47.6779], // Konstanz, Germany
-        zoom: 13,
+        style: 'https://tiles.openfreemap.org/styles/dark',
+        center: [9.1771, 47.6588], // Konstanz, Germany
+        zoom: 15.8, // Zoomed out for city view
+        pitch: 62, // 3D tilt
+        bearing: -15, // Slight rotation
+        maxPitch: 85,
+      });
+
+      map.current.on('style.load', () => {
+        if (!map.current) return;
+        const m = map.current;
+
+        // Hide default flat buildings
+        if (m.getLayer('building')) {
+          m.setLayoutProperty('building', 'visibility', 'none');
+        }
+
+        // Add 3D buildings layer
+        m.addLayer({
+          'id': '3d-buildings',
+          'source': 'openmaptiles',
+          'source-layer': 'building',
+          'type': 'fill-extrusion',
+          'minzoom': 13,
+          'paint': {
+            'fill-extrusion-color': [
+              'interpolate',
+              ['linear'],
+              ['get', 'render_height'],
+              0, '#1f2937',   // Slate 800
+              50, '#374151',  // Slate 700
+              100, '#4b5563'  // Slate 600
+            ],
+            'fill-extrusion-height': ['get', 'render_height'],
+            'fill-extrusion-base': ['get', 'render_min_height'],
+            'fill-extrusion-opacity': 0.8
+          }
+        });
+
+        // Enforce initial view and rotation
+        m.setPitch(62);
+        m.setBearing(-15);
       });
 
       map.current.addControl(new maplibregl.NavigationControl(), 'bottom-right');
@@ -111,6 +130,33 @@ const Map = ({
       map.current.on('moveend', triggerInteraction);
     }
   }, [onMapClick, onInteraction]);
+
+  // Handle 2D/3D toggle animation
+  useEffect(() => {
+    if (!map.current) return;
+
+    if (viewMode === '3D') {
+      map.current.easeTo({
+        pitch: 62,
+        bearing: -15,
+        duration: 1000
+      });
+      // Show 3D buildings layer if it exists
+      if (map.current.getLayer('3d-buildings')) {
+        map.current.setLayoutProperty('3d-buildings', 'visibility', 'visible');
+      }
+    } else {
+      map.current.easeTo({
+        pitch: 0,
+        bearing: 0,
+        duration: 1000
+      });
+      // Hide 3D buildings layer if it exists
+      if (map.current.getLayer('3d-buildings')) {
+        map.current.setLayoutProperty('3d-buildings', 'visibility', 'none');
+      }
+    }
+  }, [viewMode]);
 
   // Load nightlife venues on first toggle
   const loadNightlifeVenues = useCallback(async () => {
@@ -348,7 +394,7 @@ const Map = ({
         // Fit bounds to show the route
         const bounds = new maplibregl.LngLatBounds();
         routeCoordinates.forEach(coord => bounds.extend(coord as [number, number]));
-        mapInstance.fitBounds(bounds, { padding: { top: 100, bottom: 150, left: 50, right: 50 }, duration: 1000 });
+        mapInstance.fitBounds(bounds, { padding: { top: 100, bottom: 150, left: 50, right: 50 }, duration: 1000, pitch: viewMode === '3D' ? 45 : 0 });
       }
     };
 
@@ -364,9 +410,9 @@ const Map = ({
       const bounds = new maplibregl.LngLatBounds();
       bounds.extend(pickup);
       bounds.extend(destination);
-      map.current.fitBounds(bounds, { padding: { top: 100, bottom: 350, left: 50, right: 50 }, duration: 1000 });
+      map.current.fitBounds(bounds, { padding: { top: 100, bottom: 350, left: 50, right: 50 }, duration: 1000, pitch: viewMode === '3D' ? 45 : 0 });
     }
-  }, [pickup, destination, route]);
+  }, [pickup, destination, route, viewMode]);
 
   return <div ref={mapContainer} className="absolute inset-0" />;
 };

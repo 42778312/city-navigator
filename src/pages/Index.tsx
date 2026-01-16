@@ -60,6 +60,7 @@ const Index = ({ className = "w-full h-full", isDemo = false, lang = 'de' }: Ind
     return isDemo && localStorage.getItem('login-hint-forced') === 'true';
   });
   const [hasInteracted, setHasInteracted] = useState(false);
+  const [viewMode, setViewMode] = useState<'2D' | '3D'>('3D');
 
   useEffect(() => {
     if (isDemo && hasInteracted && !isHintForced) {
@@ -115,7 +116,23 @@ const Index = ({ className = "w-full h-full", isDemo = false, lang = 'de' }: Ind
         onNightlifeLoading={setIsNightlifeLoading}
         isInteractive={!isDemo}
         onInteraction={handleMapInteraction}
+        viewMode={viewMode}
       />
+
+      <div className="absolute bottom-6 right-16 md:right-20 z-50">
+        <button
+          onClick={() => setViewMode(prev => prev === '2D' ? '3D' : '2D')}
+          title={`Switch to ${viewMode === '3D' ? '2D' : '3D'} view`}
+          className="flex flex-col items-center justify-center w-12 h-12 rounded-lg bg-[#1a1c23] hover:bg-[#252831] border border-white/10 shadow-xl transition-all hover:scale-105 active:scale-95 group"
+        >
+          <span className="text-[9px] font-black text-white/30 uppercase tracking-[0.2em] group-hover:text-purple-400 transition-colors">
+            VIEW
+          </span>
+          <span className="text-sm font-bold text-white leading-none mt-0.5">
+            {viewMode === '3D' ? '2D' : '3D'}
+          </span>
+        </button>
+      </div>
 
 
       {!isDemo && (
