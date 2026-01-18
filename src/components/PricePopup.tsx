@@ -1,5 +1,7 @@
-import { Phone } from 'lucide-react';
-import { formatPrice, type PriceBreakdown } from '@/lib/taxiPricing';
+import React from 'react';
+import { Phone, Navigation, Clock, Euro } from 'lucide-react';
+import type { PriceBreakdown } from '@/lib/taxiPricing';
+import { formatPrice } from '@/lib/taxiPricing';
 
 interface PricePopupProps {
     priceBreakdown: PriceBreakdown;
@@ -9,53 +11,54 @@ interface PricePopupProps {
     disabled?: boolean;
 }
 
-const PricePopup = ({ priceBreakdown, distance, duration, onCallTaxi, disabled }: PricePopupProps) => {
-    const formatDuration = (minutes: number) => {
-        if (minutes < 60) {
-            return `${Math.round(minutes)} min`;
-        }
-        const hours = Math.floor(minutes / 60);
-        const mins = Math.round(minutes % 60);
-        return `${hours}h ${mins}m`;
-    };
-
+const PricePopup: React.FC<PricePopupProps> = ({
+    priceBreakdown,
+    distance,
+    duration,
+    onCallTaxi,
+    disabled = false,
+}) => {
     return (
-        <div className="price-popup">
-            <div className="flex justify-between items-start">
-                <div>
-                    <div className="flex items-center gap-2 mb-2">
-                        <span className="text-base">{priceBreakdown.tariffIcon}</span>
-                        <span className="text-xs font-medium text-primary">{priceBreakdown.tariffName}</span>
-                    </div>
-                    <div className="text-left mb-2">
-                        <p className="text-2xl font-display font-bold text-gradient">
+        <div className="price-popup flex flex-col gap-3 min-w-[200px]">
+            <div className="flex items-center justify-between border-b border-white/10 pb-2">
+                <div className="flex items-center gap-2">
+                    <div className="text-xl">{priceBreakdown.tariffIcon}</div>
+                    <div>
+                        <div className="text-[10px] font-bold text-white/50 uppercase tracking-wider leading-none">
+                            {priceBreakdown.tariffName}
+                        </div>
+                        <div className="text-lg font-bold text-white leading-none mt-1">
                             {formatPrice(priceBreakdown.totalPrice)}
-                        </p>
-                        <p className="text-xs text-muted-foreground">Taxi Konstanz</p>
+                        </div>
                     </div>
                 </div>
-                <button
-                    onClick={onCallTaxi}
-                    className="glow-button text-primary-foreground rounded-full p-3 shadow-lg flex-shrink-0 ml-4 active:scale-95 transition-transform"
-                >
-                    <Phone className="w-5 h-5" />
-                </button>
             </div>
 
-            <div className="grid grid-cols-2 gap-2 text-xs pt-2 border-t border-white/10">
-                <div className="flex items-center gap-1.5">
-                    <svg className="w-3 h-3 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
-                    </svg>
-                    <span className="text-foreground font-medium">{distance.toFixed(1)} km</span>
+            <div className="grid grid-cols-2 gap-2">
+                <div className="flex items-center gap-1.5 text-xs text-white/70">
+                    <Navigation className="w-3 h-3 text-primary" />
+                    <span>{distance.toFixed(1)} km</span>
                 </div>
-                <div className="flex items-center gap-1.5">
-                    <svg className="w-3 h-3 text-success" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                    <span className="text-foreground font-medium">{formatDuration(duration)}</span>
+                <div className="flex items-center gap-1.5 text-xs text-white/70">
+                    <Clock className="w-3 h-3 text-primary" />
+                    <span>{Math.round(duration)} min</span>
                 </div>
             </div>
+
+            <button
+                onClick={(e) => {
+                    e.stopPropagation();
+                    onCallTaxi();
+                }}
+                disabled={disabled}
+                className={`w-full py-2 rounded-lg font-bold text-xs flex items-center justify-center gap-2 transition-all ${disabled
+                        ? 'bg-white/5 text-white/30 cursor-not-allowed'
+                        : 'bg-primary text-primary-foreground hover:scale-105 active:scale-95 shadow-lg shadow-primary/20'
+                    }`}
+            >
+                <Phone className="w-3.5 h-3.5" />
+                TAXI RUFEN
+            </button>
         </div>
     );
 };

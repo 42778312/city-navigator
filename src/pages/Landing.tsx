@@ -77,23 +77,23 @@ const Landing = () => {
             />
 
             {/* Header */}
-            <header className="relative md:absolute md:top-6 md:left-0 md:right-0 z-50 mt-6 md:mt-0 mx-auto max-w-5xl px-6 py-3 flex items-center justify-between rounded-full border border-white/10 bg-white/5 backdrop-blur-md shadow-lg">
+            <header className="relative md:absolute md:top-6 md:left-0 md:right-0 z-50 mt-6 md:mt-0 mx-auto w-fit px-5 py-2.5 flex items-center gap-6 rounded-full border border-white/10 bg-white/5 backdrop-blur-md shadow-lg transition-all duration-300">
                 <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-lg bg-purple-600 flex items-center justify-center">
+                    <div className="w-8 h-8 rounded-lg bg-purple-600 flex items-center justify-center shadow-lg shadow-purple-500/20">
                         <svg viewBox="0 0 24 24" className="w-5 h-5 text-white fill-current">
                             <path d="M12 2L2 7l10 5 10-5-10-5zm0 9l2.5-1.25L12 8.5l-2.5 1.25L12 11zm0 2.5l-5-2.5-5 2.5L12 22l10-8.5-5-2.5-5 2.5z" />
                         </svg>
                     </div>
-                    <span className="font-bold text-lg tracking-tight">Light Map</span>
+                    <span className="font-bold text-base tracking-tight hidden sm:inline-block">Light Map</span>
                 </div>
 
                 <div className="flex items-center gap-3">
                     {/* Language Toggle */}
                     <button
                         onClick={toggleLanguage}
-                        className="flex items-center gap-2 px-3 py-1.5 rounded-full border border-white/10 hover:bg-white/5 transition-all text-xs font-bold uppercase tracking-wider"
+                        className="flex items-center gap-2 px-3 py-1.5 rounded-full border border-white/10 hover:bg-white/5 transition-all text-[10px] font-bold uppercase tracking-wider bg-white/5"
                     >
-                        <Globe className="w-3.5 h-3.5 text-purple-400" />
+                        <Globe className="w-3 h-3 text-purple-400" />
                         <span>{lang}</span>
                     </button>
 
@@ -103,7 +103,7 @@ const Landing = () => {
                         </div>
                     ) : (
                         <SignInButton mode="modal" forceRedirectUrl="/map">
-                            <button className="bg-[#7C3AED] hover:bg-[#6D28D9] text-white px-5 py-2 rounded-full text-sm font-medium transition-all shadow-lg shadow-purple-900/20">
+                            <button className="bg-[#7C3AED] hover:bg-[#6D28D9] text-white px-5 py-2 rounded-full text-xs font-semibold transition-all shadow-lg shadow-purple-900/20 hover:scale-105 active:scale-95">
                                 {t.login}
                             </button>
                         </SignInButton>

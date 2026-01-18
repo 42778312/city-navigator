@@ -80,21 +80,19 @@ const SearchInput = ({ type, value, onChange, onSelect, placeholder }: SearchInp
         animate={{
           scale: isFocused ? 1.02 : 1,
         }}
-        className={`glass-input flex items-center gap-2 px-3 py-2 ${
-          isFocused ? 'ring-1 ring-primary/50' : ''
-        }`}
+        className={`glass-input flex items-center gap-2 px-3 py-2 ${isFocused ? 'ring-1 ring-primary/50' : ''
+          }`}
       >
         <motion.div
           animate={{
             scale: isFocused ? 1.1 : 1,
           }}
-          className={`p-1.5 rounded-lg ${
-            isPickup ? 'bg-primary/20 text-primary' : 'bg-success/20 text-success'
-          }`}
+          className={`p-1.5 rounded-lg ${isPickup ? 'bg-primary/20 text-primary' : 'bg-success/20 text-success'
+            }`}
         >
           <Icon className="w-3.5 h-3.5" />
         </motion.div>
-        
+
         <input
           ref={inputRef}
           type="text"
@@ -103,11 +101,10 @@ const SearchInput = ({ type, value, onChange, onSelect, placeholder }: SearchInp
           onFocus={() => setIsFocused(true)}
           onBlur={() => setTimeout(() => setIsFocused(false), 200)}
           placeholder={placeholder}
-          className={`flex-1 bg-transparent outline-none text-sm text-foreground placeholder:text-muted-foreground ${
-            isPickup ? 'pr-8' : ''
-          }`}
+          className={`flex-1 bg-transparent outline-none text-sm text-foreground placeholder:text-muted-foreground ${isPickup ? 'pr-8' : ''
+            }`}
         />
-        
+
         <AnimatePresence>
           {isLoading && (
             <motion.div

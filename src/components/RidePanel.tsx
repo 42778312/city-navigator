@@ -74,7 +74,7 @@ const RidePanel = ({
       try {
         const permissionStatus = await navigator.permissions.query({ name: 'geolocation' as PermissionName });
         console.log('Geolocation permission status:', permissionStatus.state);
-        
+
         if (permissionStatus.state === 'denied') {
           toast({
             title: "Standortzugriff blockiert",
@@ -96,18 +96,18 @@ const RidePanel = ({
         console.log('Geolocation success:', position.coords);
         try {
           const { latitude, longitude } = position.coords;
-          
+
           // Reverse geocode to get address
           const address = await reverseGeocode(latitude, longitude);
-          
+
           if (address) {
             const coords: [number, number] = [address.longitude, address.latitude];
             const location = { address: address.fullAddress, coords };
-            
+
             setPickupAddress(address.displayLine1);
             setPickupCoords(coords);
             onPickupChange(location);
-            
+
             toast({
               title: "Standort gefunden",
               description: address.displayLine1
@@ -135,7 +135,7 @@ const RidePanel = ({
         setIsLoadingGPS(false);
         let title = "GPS Fehler";
         let message = "Standort konnte nicht ermittelt werden.";
-        
+
         switch (error.code) {
           case error.PERMISSION_DENIED:
             title = "Zugriff verweigert";
@@ -150,7 +150,7 @@ const RidePanel = ({
             message = "Standortabfrage hat zu lange gedauert. Bitte versuchen Sie es erneut.";
             break;
         }
-        
+
         toast({
           title: title,
           description: message,
@@ -219,7 +219,7 @@ const RidePanel = ({
     // Swap in parent state
     const tempLocation = pickupCoords ? { address: pickupAddress, coords: pickupCoords } : null;
     const destLocation = destinationCoords ? { address: destinationAddress, coords: destinationCoords } : null;
-    
+
     onPickupChange(destLocation);
     onDestinationChange(tempLocation);
 
@@ -245,7 +245,7 @@ const RidePanel = ({
         const geometry = route.geometry.coordinates as [number, number][];
 
         const breakdown = calculateTaxiFare(distanceKm);
-        
+
         onRouteCalculated(geometry);
         onRouteInfoChange({ distance: distanceKm, duration: durationMin, priceBreakdown: breakdown });
 

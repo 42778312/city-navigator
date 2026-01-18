@@ -31,6 +31,7 @@ interface MapProps {
   isInteractive?: boolean;
   onInteraction?: () => void;
   viewMode?: '2D' | '3D';
+  activeTab?: string;
 }
 
 const Map = ({
@@ -44,7 +45,8 @@ const Map = ({
   onNightlifeLoading,
   isInteractive = true,
   onInteraction,
-  viewMode = '3D'
+  viewMode = '3D',
+  activeTab = ''
 }: MapProps) => {
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<maplibregl.Map | null>(null);
@@ -189,6 +191,17 @@ const Map = ({
 
     if (nightlifeEnabled) {
       addNightlifeLayers();
+
+      // Fit bounds to nightlife venues
+      if (nightlifeVenues.length > 0) {
+        const bounds = new maplibregl.LngLatBounds();
+        nightlifeVenues.forEach(venue => bounds.extend(venue.coordinates));
+        mapInstance.fitBounds(bounds, {
+          padding: { top: 100, bottom: 100, left: 50, right: 50 },
+          duration: 1500,
+          pitch: viewMode === '3D' ? 45 : 0
+        });
+      }
     } else {
       removeNightlifeLayers();
     }
@@ -405,14 +418,21 @@ const Map = ({
     }
   }, [route, pickup, destination]);
 
+  // Reset view to default when no specific section is active
   useEffect(() => {
-    if (map.current && pickup && destination && !route) {
-      const bounds = new maplibregl.LngLatBounds();
-      bounds.extend(pickup);
-      bounds.extend(destination);
-      map.current.fitBounds(bounds, { padding: { top: 100, bottom: 350, left: 50, right: 50 }, duration: 1000, pitch: viewMode === '3D' ? 45 : 0 });
+    if (!map.current) return;
+
+    // If not in taxi and nightlife is off, reset to city view
+    if (activeTab !== 'taxi' && !nightlifeEnabled && activeTab !== '') {
+      map.current.easeTo({
+        center: [9.1771, 47.6588],
+        zoom: 15.8,
+        pitch: viewMode === '3D' ? 62 : 0,
+        bearing: viewMode === '3D' ? -15 : 0,
+        duration: 2000
+      });
     }
-  }, [pickup, destination, route, viewMode]);
+  }, [activeTab, nightlifeEnabled, viewMode]);
 
   return <div ref={mapContainer} className="absolute inset-0" />;
 };

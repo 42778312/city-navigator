@@ -2,12 +2,12 @@ import { useState, useCallback, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import Map from '@/components/Map';
 import RidePanel from '@/components/RidePanel';
-import NightlifeButton from '@/components/NightlifeButton';
 import { TaxiStand } from '@/components/TaxiStand';
 import Snowfall from '@/components/Snowfall';
 import type { PriceBreakdown } from '@/lib/taxiPricing';
 import { UserButton, useClerk } from "@clerk/clerk-react";
 import { useAuthState } from "@/features/auth";
+import NavTabs from '@/components/nightlife/NavTabs';
 
 interface PriceInfo {
   distance: number;
@@ -51,7 +51,7 @@ const Index = ({ className = "w-full h-full", isDemo = false, lang = 'de' }: Ind
   const [isMinimized, setIsMinimized] = useState(true); // Hidden by default
   const [routeInfo, setRouteInfo] = useState<PriceInfo | null>(null);
   const [isTaxiStandOpen, setIsTaxiStandOpen] = useState(false);
-  const [nightlifeEnabled, setNightlifeEnabled] = useState(isDemo);
+  const [nightlifeEnabled, setNightlifeEnabled] = useState(false);
   const [isNightlifeLoading, setIsNightlifeLoading] = useState(false);
   const [showLoginHint, setShowLoginHint] = useState(() => {
     return isDemo && localStorage.getItem('login-hint-forced') === 'true';
@@ -61,6 +61,20 @@ const Index = ({ className = "w-full h-full", isDemo = false, lang = 'de' }: Ind
   });
   const [hasInteracted, setHasInteracted] = useState(false);
   const [viewMode, setViewMode] = useState<'2D' | '3D'>('3D');
+  const [activeNavTab, setActiveNavTab] = useState('');
+
+
+  const handleNavTabToggle = (tabId: string) => {
+    if (tabId === 'nightlife') {
+      setNightlifeEnabled(prev => !prev);
+    }
+
+    if (tabId === 'taxi') {
+      setIsMinimized(false);
+    }
+
+    setActiveNavTab(tabId);
+  };
 
   useEffect(() => {
     if (isDemo && hasInteracted && !isHintForced) {
@@ -106,16 +120,17 @@ const Index = ({ className = "w-full h-full", isDemo = false, lang = 'de' }: Ind
     <div className={`relative overflow-hidden bg-background ${className}`}>
       <Snowfall />
       <Map
-        pickup={pickup?.coords || null}
-        destination={destination?.coords || null}
-        route={route}
+        pickup={activeNavTab === 'taxi' ? (pickup?.coords || null) : null}
+        destination={activeNavTab === 'taxi' ? (destination?.coords || null) : null}
+        route={activeNavTab === 'taxi' ? route : null}
         onMapClick={() => setIsMinimized(true)}
-        routeInfo={routeInfo}
+        routeInfo={activeNavTab === 'taxi' ? routeInfo : null}
         onCallTaxi={() => isDemo ? setShowLoginHint(true) : setIsTaxiStandOpen(true)}
         nightlifeEnabled={nightlifeEnabled}
         onNightlifeLoading={setIsNightlifeLoading}
         isInteractive={!isDemo}
         onInteraction={handleMapInteraction}
+        activeTab={activeNavTab}
         viewMode={viewMode}
       />
 
@@ -176,25 +191,25 @@ const Index = ({ className = "w-full h-full", isDemo = false, lang = 'de' }: Ind
         </motion.div>
       )}
 
-      {!isDemo && (
-        <div className="absolute top-4 right-4 md:top-6 md:right-6 z-10">
-          <NightlifeButton
-            onToggle={handleNightlifeToggle}
-            isLoading={isNightlifeLoading}
-          />
-        </div>
-      )}
 
-      <RidePanel
-        onPickupChange={setPickup}
-        onDestinationChange={setDestination}
-        onRouteCalculated={handleRouteCalculated}
-        onRouteInfoChange={setRouteInfo}
-        isMinimized={isMinimized}
-        onToggleMinimize={() => setIsMinimized(!isMinimized)}
-      />
+      <div className={`${activeNavTab === 'taxi' ? 'block' : 'hidden'}`}>
+        <RidePanel
+          onPickupChange={setPickup}
+          onDestinationChange={setDestination}
+          onRouteCalculated={handleRouteCalculated}
+          onRouteInfoChange={setRouteInfo}
+          isMinimized={isMinimized}
+          onToggleMinimize={() => setIsMinimized(!isMinimized)}
+        />
+      </div>
 
       <TaxiStand isOpen={isTaxiStandOpen} onOpenChange={setIsTaxiStandOpen} />
+
+      {/* Nightlife UI Overlays */}
+      <NavTabs
+        activeTab={activeNavTab}
+        onChange={handleNavTabToggle}
+      />
 
       {isDemo && showLoginHint && (
         <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
