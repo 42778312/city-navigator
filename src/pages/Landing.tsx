@@ -30,6 +30,7 @@ const Landing = () => {
     const { openSignIn } = useClerk();
     const navigate = useNavigate();
     const [lang, setLang] = useState<'de' | 'en'>('de');
+    const [isMapExpanded, setIsMapExpanded] = useState(false);
 
     const t = translations[lang];
 
@@ -56,6 +57,10 @@ const Landing = () => {
         window.scrollTo({ top: 0, behavior: 'smooth' });
     };
 
+    const toggleMapExpansion = () => {
+        setIsMapExpanded(!isMapExpanded);
+    };
+
     return (
         <div className="min-h-screen md:h-screen bg-[#0B0D12] text-white overflow-x-hidden md:overflow-hidden font-sans selection:bg-purple-500/30 flex flex-col">
             {/* Winter Effect */}
@@ -77,7 +82,7 @@ const Landing = () => {
             />
 
             {/* Header */}
-            <header className="relative md:absolute md:top-6 md:left-0 md:right-0 z-50 mt-6 md:mt-0 mx-auto w-fit px-5 py-2.5 flex items-center gap-6 rounded-full border border-white/10 bg-white/5 backdrop-blur-md shadow-lg transition-all duration-300">
+            <header className="relative md:absolute md:top-6 ml-6 md:ml-0 md:left-16 z-50 mt-6 md:mt-0 w-fit px-5 py-2.5 flex items-center gap-6 rounded-full border border-white/10 bg-white/5 backdrop-blur-md shadow-lg transition-all duration-300">
                 <div className="flex items-center gap-2">
                     <div className="w-8 h-8 rounded-lg bg-purple-600 flex items-center justify-center shadow-lg shadow-purple-500/20">
                         <svg viewBox="0 0 24 24" className="w-5 h-5 text-white fill-current">
@@ -151,10 +156,39 @@ const Landing = () => {
                 </main>
 
                 {/* Demo Map Section - sequential on mobile, fixed on desktop */}
-                <div
+                <motion.div
                     ref={mapRef}
-                    className="relative md:fixed top-0 right-0 w-full md:w-[60%] h-[800px] md:h-screen z-0 pointer-events-auto map-mask mt-4 md:mt-0 border-t border-b md:border-none border-white/5 overflow-hidden"
+                    layout
+                    initial={false}
+                    transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                    className={`
+                        relative md:fixed top-0 right-0 z-0 pointer-events-auto map-mask mt-4 md:mt-0 border-t border-b md:border-none border-white/5 overflow-hidden
+                        ${isMapExpanded
+                            ? 'w-full h-screen left-0 z-[100]'
+                            : 'w-full md:w-[60%] h-[800px] md:h-screen'
+                        }
+                    `}
                 >
+                    {/* Expansion Toggle Button */}
+                    <div className="absolute top-6 right-6 z-50">
+                        <button
+                            onClick={toggleMapExpansion}
+                            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#1a1c23]/80 backdrop-blur-xl border border-white/10 text-white/90 hover:text-white hover:bg-[#252831] transition-all shadow-2xl group"
+                        >
+                            {isMapExpanded ? (
+                                <>
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 15 6 6m-6-6v6m0-6h6M9 9 3 3m6 6V3m0 6H3" /></svg>
+                                    <span className="text-xs font-bold uppercase tracking-wider">{lang === 'de' ? 'Verkleinern' : 'Collapse'}</span>
+                                </>
+                            ) : (
+                                <>
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 9 6-6m-6 6V3m0 6h6M9 15l-6 6m6-6v6m0-6H3" /></svg>
+                                    <span className="text-xs font-bold uppercase tracking-wider">{lang === 'de' ? 'Vollbild' : 'Full Screen'}</span>
+                                </>
+                            )}
+                        </button>
+                    </div>
+
                     {/* Floating Navigation Arrows - Mobile/iPad only, tucked in left corner */}
                     <div className="lg:hidden absolute top-4 left-4 z-50">
                         <motion.button
@@ -179,7 +213,7 @@ const Landing = () => {
                             <ChevronUp className="w-6 h-6 text-white" />
                         </motion.button>
                     </div>
-                </div>
+                </motion.div>
 
             </div>
 
