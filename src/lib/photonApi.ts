@@ -11,7 +11,8 @@
 // CONSTANTS
 // =============================================================================
 
-const PHOTON_API_URL = 'https://photon.komoot.io/api/';
+const PHOTON_API_URL = 'https://photon.komoot.io';
+
 const MIN_QUERY_LENGTH = 3;
 const DEBOUNCE_DELAY = 300;
 
@@ -52,12 +53,12 @@ export interface PhotonResponse {
 export interface AddressResult {
   // Original data
   raw: PhotonFeature;
-  
+
   // Formatted display
   displayLine1: string; // e.g., "Hauptstraße 123"
   displayLine2: string; // e.g., "10115 Berlin, Deutschland"
   fullAddress: string;  // Complete formatted address
-  
+
   // Structured components
   street?: string;
   houseNumber?: string;
@@ -66,7 +67,7 @@ export interface AddressResult {
   district?: string;
   state?: string;
   country?: string;
-  
+
   // Coordinates (required for route calculation)
   latitude: number;
   longitude: number;
@@ -95,12 +96,12 @@ export function formatPhotonAddress(feature: PhotonFeature): AddressResult {
   // Build display - prioritize showing place name with address
   let displayLine1 = '';
   let displayLine2 = '';
-  
+
   // If there's a place name (business, landmark, etc.), show it prominently
   if (props.name && (props.street || props.city)) {
     // Line 1: Place name
     displayLine1 = props.name;
-    
+
     // Line 2: Street address or city
     const addressParts: string[] = [];
     if (props.street) {
@@ -117,7 +118,7 @@ export function formatPhotonAddress(feature: PhotonFeature): AddressResult {
       addressParts.push(props.city);
     }
     displayLine2 = addressParts.join(', ') || 'Konstanz';
-  } 
+  }
   // If only street address (no specific place name)
   else if (props.street) {
     // Line 1: Street + house number
@@ -125,7 +126,7 @@ export function formatPhotonAddress(feature: PhotonFeature): AddressResult {
     if (props.housenumber) {
       displayLine1 += ` ${props.housenumber}`;
     }
-    
+
     // Line 2: PLZ + City
     const locationParts: string[] = [];
     if (props.postcode) {
@@ -223,8 +224,8 @@ export async function searchAddress(
   }
 
   try {
-    const response = await fetch(`${PHOTON_API_URL}?${params.toString()}`);
-    
+    const response = await fetch(`${PHOTON_API_URL}/api/?${params.toString()}`);
+
     if (!response.ok) {
       throw new Error(`Photon API error: ${response.status} ${response.statusText}`);
     }
@@ -235,11 +236,11 @@ export async function searchAddress(
     const scoredResults = data.features.map(feature => {
       const props = feature.properties;
       let score = 0;
-      
+
       // Highest priority: Within Landkreis Konstanz
       const cityLower = props.city?.toLowerCase() || '';
       const districtLower = props.district?.toLowerCase() || '';
-      
+
       if (cityLower.includes('konstanz') || districtLower.includes('konstanz')) {
         score += 1000;
       } else if (
@@ -248,35 +249,35 @@ export async function searchAddress(
         // Other municipalities in Landkreis Konstanz
         score += 500;
       }
-      
+
       // Medium priority: Baden-Württemberg
       if (props.state === 'Baden-Württemberg') {
         score += 100;
       }
-      
+
       // Bonus for places with names (POIs, businesses)
       if (props.name && props.name.length > 0) {
         score += 50;
       }
-      
+
       // Bonus for complete addresses
       if (props.street && props.housenumber) {
         score += 10;
       }
-      
+
       return { feature, score };
     });
-    
+
     // Sort by score (highest first) and take results
     const sortedFeatures = scoredResults
       .sort((a, b) => b.score - a.score)
       .map(item => item.feature);
-    
+
     // Filter to only German results if we have any
     const germanResults = sortedFeatures.filter(
       (feature) => feature.properties.countrycode === 'DE'
     );
-    
+
     const results = germanResults.length > 0 ? germanResults : sortedFeatures;
 
     // Format and return results
@@ -306,7 +307,7 @@ export async function reverseGeocode(
     });
 
     const response = await fetch(`${PHOTON_API_URL}/reverse?${params.toString()}`);
-    
+
     if (!response.ok) {
       throw new Error(`Photon API error: ${response.status}`);
     }

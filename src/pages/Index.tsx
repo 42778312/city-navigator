@@ -129,6 +129,8 @@ const Index = ({ className = "w-full h-full", isDemo = false, lang = 'de' }: Ind
   const [eventsError, setEventsError] = useState<string | null>(null);
   const [hoveredEvent, setHoveredEvent] = useState<PartyEvent | null>(null);
   const [hoveredCardRect, setHoveredCardRect] = useState<DOMRect | null>(null);
+  const [userLocation, setUserLocation] = useState<[number, number] | null>(null);
+  const [isLoadingGPS, setIsLoadingGPS] = useState(false);
   const mapRef = useRef<MapRef>(null);
 
   useEffect(() => {
@@ -204,6 +206,43 @@ const Index = ({ className = "w-full h-full", isDemo = false, lang = 'de' }: Ind
     }
   }, [hasInteracted]);
 
+  const handleToggleLocation = () => {
+    if (userLocation) {
+      setUserLocation(null);
+      return;
+    }
+
+    if (!navigator.geolocation) {
+      console.error("Geolocation is not supported");
+      return;
+    }
+
+    setIsLoadingGPS(true);
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const coords: [number, number] = [position.coords.longitude, position.coords.latitude];
+        setUserLocation(coords);
+        setIsLoadingGPS(false);
+
+        // Center map on user
+        if (mapRef.current) {
+          // We don't have direct access to map instance here to call easeTo, 
+          // but we can pass a prop or use a method if needed.
+          // For now, the user marker appearing is enough.
+        }
+      },
+      (err) => {
+        console.error(err.message);
+        setIsLoadingGPS(false);
+      },
+      { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
+    );
+  };
+
+  const handleUserLocationChange = useCallback((coords: [number, number] | null) => {
+    setUserLocation(coords);
+  }, []);
+
   const handleRouteCalculated = useCallback((routeGeometry: [number, number][] | null) => {
     setRoute(routeGeometry);
   }, []);
@@ -233,6 +272,7 @@ const Index = ({ className = "w-full h-full", isDemo = false, lang = 'de' }: Ind
         activeTab={activeSections.join(',')}
         viewMode={viewMode}
         events={isEventsActive ? mapEvents : []}
+        userLocation={userLocation}
       />
 
       {/* Leading Line Overlay */}
@@ -298,6 +338,8 @@ const Index = ({ className = "w-full h-full", isDemo = false, lang = 'de' }: Ind
           onRouteInfoChange={setRouteInfo}
           isMinimized={isTaxiSearchOpen}
           onToggleMinimize={() => setIsTaxiSearchOpen(!isTaxiSearchOpen)}
+          userLocation={userLocation}
+          onUserLocationChange={handleUserLocationChange}
         />
       </div>
 

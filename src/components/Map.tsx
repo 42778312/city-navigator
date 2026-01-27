@@ -34,6 +34,7 @@ interface MapProps {
   viewMode?: '2D' | '3D';
   activeTab?: string;
   events?: PartyEvent[];
+  userLocation?: [number, number] | null;
 }
 
 export interface MapRef {
@@ -53,7 +54,8 @@ const Map = forwardRef<MapRef, MapProps>(({
   onInteraction,
   viewMode = '3D',
   activeTab = '',
-  events = []
+  events = [],
+  userLocation = null
 }, ref) => {
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<maplibregl.Map | null>(null);
@@ -63,6 +65,7 @@ const Map = forwardRef<MapRef, MapProps>(({
   const nightlifeMarkers = useRef<maplibregl.Marker[]>([]);
   const wifiMarkers = useRef<maplibregl.Marker[]>([]);
   const eventMarkers = useRef<maplibregl.Marker[]>([]);
+  const userLocationMarker = useRef<maplibregl.Marker | null>(null);
   const [nightlifeVenues, setNightlifeVenues] = useState<NightlifeVenue[]>([]);
   const [venuesLoaded, setVenuesLoaded] = useState(false);
 
@@ -93,6 +96,18 @@ const Map = forwardRef<MapRef, MapProps>(({
     `;
     return el;
   };
+
+  const createUserLocationMarkerElement = () => {
+    const el = document.createElement('div');
+    el.style.cssText = 'width: 24px; height: 24px; display: flex; align-items: center; justify-content: center;';
+    el.innerHTML = `
+      <div style="position: absolute; width: 40px; height: 40px; border-radius: 50%; background: #00D9FF20; animation: pulse-ring 2s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;"></div>
+      <div style="position: absolute; width: 16px; height: 16px; border-radius: 50%; background: white; box-shadow: 0 4px 12px rgba(0,0,0,0.3);"></div>
+      <div style="position: absolute; width: 12px; height: 12px; border-radius: 50%; background: #00D9FF;"></div>
+    `;
+    return el;
+  };
+
 
   const createWifiMarkerElement = () => {
     const el = document.createElement('div');
@@ -513,6 +528,30 @@ const Map = forwardRef<MapRef, MapProps>(({
       map.current.easeTo({ center: [9.1771, 47.6588], zoom: 15.8, pitch: viewMode === '3D' ? 62 : 0, bearing: viewMode === '3D' ? -15 : 0, duration: 2000 });
     }
   }, [activeTab, nightlifeEnabled, viewMode]);
+
+  useEffect(() => {
+    if (!map.current) return;
+
+    if (userLocation) {
+      if (userLocationMarker.current) {
+        userLocationMarker.current.setLngLat(userLocation);
+      } else {
+        userLocationMarker.current = new maplibregl.Marker({
+          element: createUserLocationMarkerElement(),
+          anchor: 'center'
+        })
+          .setLngLat(userLocation)
+          .addTo(map.current);
+      }
+
+      // Center the map when user location is received
+      map.current.flyTo({ center: userLocation, zoom: 16, duration: 2000 });
+
+    } else if (userLocationMarker.current) {
+      userLocationMarker.current.remove();
+      userLocationMarker.current = null;
+    }
+  }, [userLocation]);
 
   return <div ref={mapContainer} className="absolute inset-0" />;
 });

@@ -30,6 +30,8 @@ interface RidePanelProps {
   onRouteInfoChange: (routeInfo: PriceInfo | null) => void;
   isMinimized?: boolean;
   onToggleMinimize?: () => void;
+  userLocation?: [number, number] | null;
+  onUserLocationChange?: (coords: [number, number] | null) => void;
 }
 
 const RidePanel = ({
@@ -38,7 +40,9 @@ const RidePanel = ({
   onRouteCalculated,
   onRouteInfoChange,
   isMinimized = false,
-  onToggleMinimize
+  onToggleMinimize,
+  userLocation,
+  onUserLocationChange
 }: RidePanelProps) => {
   const [pickupAddress, setPickupAddress] = useState('');
   const [destinationAddress, setDestinationAddress] = useState('');
@@ -88,6 +92,11 @@ const RidePanel = ({
       }
     }
 
+    if (userLocation && onUserLocationChange) {
+      onUserLocationChange(null);
+      return;
+    }
+
     setIsLoadingGPS(true);
     console.log('Requesting geolocation...');
 
@@ -97,38 +106,53 @@ const RidePanel = ({
         try {
           const { latitude, longitude } = position.coords;
 
-          // Reverse geocode to get address
-          const address = await reverseGeocode(latitude, longitude);
+          // Always update user location marker immediately
+          if (onUserLocationChange) {
+            onUserLocationChange([longitude, latitude]);
+          }
 
-          if (address) {
-            const coords: [number, number] = [address.longitude, address.latitude];
-            const location = { address: address.fullAddress, coords };
+          // Reverse geocode to get address for input field
+          try {
+            const address = await reverseGeocode(latitude, longitude);
 
-            setPickupAddress(address.displayLine1);
-            setPickupCoords(coords);
-            onPickupChange(location);
+            if (address) {
+              const coords: [number, number] = [address.longitude, address.latitude];
+              const location = { address: address.fullAddress, coords };
 
-            toast({
-              title: "Standort gefunden",
-              description: address.displayLine1
-            });
-          } else {
+              setPickupAddress(address.displayLine1);
+              setPickupCoords(coords);
+              onPickupChange(location);
+
+              toast({
+                title: "Standort gefunden",
+                description: address.displayLine1
+              });
+            } else {
+              toast({
+                title: "Adresse nicht gefunden",
+                description: "Koordinaten werden angezeigt, aber keine Adresse gefunden.",
+                variant: "default"
+              });
+            }
+          } catch (geocodingError) {
+            console.error('Reverse geocoding error:', geocodingError);
             toast({
               title: "Adresse nicht gefunden",
-              description: "Bitte geben Sie die Adresse manuell ein.",
-              variant: "destructive"
+              description: "Standort auf Karte markiert, Adresse konnte nicht geladen werden.",
+              variant: "default"
             });
           }
         } catch (error) {
-          console.error('Reverse geocoding error:', error);
+          console.error('Geolocation processing error:', error);
           toast({
             title: "Fehler",
-            description: "Adresse konnte nicht ermittelt werden.",
+            description: "Standort konnte nicht verarbeitet werden.",
             variant: "destructive"
           });
         } finally {
           setIsLoadingGPS(false);
         }
+
       },
       (error) => {
         console.error('Geolocation error:', error.code, error.message);
@@ -158,9 +182,9 @@ const RidePanel = ({
         });
       },
       {
-        enableHighAccuracy: false,
-        timeout: 15000,
-        maximumAge: 30000
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 0
       }
     );
   };
@@ -260,6 +284,7 @@ const RidePanel = ({
 
   const canCalculate = pickupCoords && destinationCoords && !isCalculating;
 
+
   return (
     <div className="absolute bottom-0 left-0 right-0 p-4 md:p-6 z-10 pointer-events-none">
       <div className="max-w-lg mx-auto relative">
@@ -289,19 +314,37 @@ const RidePanel = ({
                   )}
                 </div>
 
+                {userLocation && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    className="px-3 py-1.5 bg-primary/5 rounded-lg border border-primary/20 mb-3"
+                  >
+                    <div className="flex items-center justify-between text-[10px]">
+                      <div className="flex items-center gap-1.5 text-primary/80">
+                        <Navigation className="w-3 h-3" />
+                        <span className="font-medium">Current Coordinates</span>
+                      </div>
+                      <div className="font-mono text-muted-foreground">
+                        {userLocation[1].toFixed(5)}, {userLocation[0].toFixed(5)}
+                      </div>
+                    </div>
+                  </motion.div>
+                )}
+
                 <div className="space-y-2">
                   <div className="relative">
                     <SearchInput type="pickup" value={pickupAddress} onChange={handlePickupAddressChange} onSelect={(result) => handleSelect('pickup', result)} placeholder="Enter pickup location" />
                     <button
                       onClick={handleUseCurrentLocation}
                       disabled={isLoadingGPS}
-                      className="absolute right-10 top-1/2 -translate-y-1/2 p-1.5 hover:bg-muted rounded-lg transition-colors text-primary disabled:opacity-50 disabled:cursor-not-allowed z-10"
-                      title="Aktuellen Standort verwenden"
+                      className={`absolute right-10 top-1/2 -translate-y-1/2 p-1.5 hover:bg-muted rounded-lg transition-all z-10 ${userLocation ? 'text-primary bg-primary/10' : 'text-muted-foreground'}`}
+                      title={userLocation ? "Standort ausblenden" : "Aktuellen Standort verwenden"}
                     >
                       {isLoadingGPS ? (
-                        <Loader2 className="w-4 h-4 animate-spin" />
+                        <Loader2 className="w-4 h-4 animate-spin text-primary" />
                       ) : (
-                        <Navigation className="w-4 h-4" />
+                        <Navigation className={`w-4 h-4 ${userLocation ? 'fill-primary' : ''}`} />
                       )}
                     </button>
                   </div>
