@@ -44,70 +44,6 @@ const translations = {
   }
 };
 
-const LeadingLine: React.FC<{ mapRef: React.RefObject<MapRef>, event: PartyEvent, cardRect: DOMRect }> = ({ mapRef, event, cardRect }) => {
-  const [targetPoint, setTargetPoint] = useState<{ x: number, y: number } | null>(null);
-
-  useEffect(() => {
-    const updatePosition = () => {
-      if (event.venue?.coordinates) {
-        const point = mapRef.current?.project(event.venue.coordinates);
-        if (point) setTargetPoint(point);
-      }
-    };
-
-    updatePosition();
-    // In a production app, we'd add an event listener for map moves here.
-  }, [event, mapRef, cardRect]);
-
-  if (!targetPoint) return null;
-
-  const startX = cardRect.left + cardRect.width / 2;
-  const startY = cardRect.top;
-
-  const midY = (startY + targetPoint.y) / 2;
-  const path = `M ${startX} ${startY} C ${startX} ${midY}, ${targetPoint.x} ${midY}, ${targetPoint.x} ${targetPoint.y}`;
-
-  return (
-    <svg className="fixed inset-0 pointer-events-none z-50 overflow-visible">
-      <defs>
-        <filter id="glow">
-          <feGaussianBlur stdDeviation="3" result="coloredBlur" />
-          <feMerge>
-            <feMergeNode in="coloredBlur" />
-            <feMergeNode in="SourceGraphic" />
-          </feMerge>
-        </filter>
-      </defs>
-
-      <motion.path
-        d={path}
-        stroke="#A78BFA"
-        strokeWidth="2"
-        fill="none"
-        filter="url(#glow)"
-        initial={{ pathLength: 0, opacity: 0 }}
-        animate={{ pathLength: 1, opacity: 1 }}
-        exit={{ opacity: 0 }}
-        transition={{
-          duration: 0.6,
-          ease: [0.22, 1, 0.36, 1], // Quintic easeOut
-          opacity: { duration: 0.3 }
-        }}
-      />
-
-      <motion.circle
-        cx={targetPoint.x}
-        cy={targetPoint.y}
-        r="4"
-        fill="#A78BFA"
-        initial={{ scale: 0 }}
-        animate={{ scale: [1, 1.5, 1] }}
-        transition={{ repeat: Infinity, duration: 1.5 }}
-      />
-    </svg>
-  );
-};
-
 const Index = ({ className = "w-full h-full", isDemo = false, lang = 'de' }: IndexProps) => {
   const { isSignedIn, signInWithGoogle } = useAuthState();
   const { openSignIn } = useClerk();
@@ -123,15 +59,14 @@ const Index = ({ className = "w-full h-full", isDemo = false, lang = 'de' }: Ind
   const [showLoginHint, setShowLoginHint] = useState(false);
   const [hasInteracted, setHasInteracted] = useState(false);
   const [viewMode, setViewMode] = useState<'2D' | '3D'>('3D');
+  const [userLocation, setUserLocation] = useState<[number, number] | null>(null);
+  const [isLoadingGPS, setIsLoadingGPS] = useState(false);
+  const mapRef = useRef<MapRef>(null);
+
   const [activeSections, setActiveSections] = useState<string[]>([]);
   const [mapEvents, setMapEvents] = useState<PartyEvent[]>([]);
   const [eventsLoading, setEventsLoading] = useState(true);
   const [eventsError, setEventsError] = useState<string | null>(null);
-  const [hoveredEvent, setHoveredEvent] = useState<PartyEvent | null>(null);
-  const [hoveredCardRect, setHoveredCardRect] = useState<DOMRect | null>(null);
-  const [userLocation, setUserLocation] = useState<[number, number] | null>(null);
-  const [isLoadingGPS, setIsLoadingGPS] = useState(false);
-  const mapRef = useRef<MapRef>(null);
 
   useEffect(() => {
     const loadEvents = async () => {
@@ -178,6 +113,7 @@ const Index = ({ className = "w-full h-full", isDemo = false, lang = 'de' }: Ind
 
     loadEvents();
   }, []);
+
 
   const handleNavTabToggle = (tabId: string) => {
     setActiveSections(prev => {
@@ -271,21 +207,8 @@ const Index = ({ className = "w-full h-full", isDemo = false, lang = 'de' }: Ind
         onInteraction={handleMapInteraction}
         activeTab={activeSections.join(',')}
         viewMode={viewMode}
-        events={isEventsActive ? mapEvents : []}
         userLocation={userLocation}
       />
-
-      {/* Leading Line Overlay */}
-      <AnimatePresence mode="wait">
-        {hoveredEvent && hoveredCardRect && mapRef.current && (
-          <LeadingLine
-            key={hoveredEvent.id}
-            mapRef={mapRef}
-            event={hoveredEvent}
-            cardRect={hoveredCardRect}
-          />
-        )}
-      </AnimatePresence>
 
       <div className="absolute bottom-6 right-16 md:right-20 z-50">
         <button
@@ -351,16 +274,8 @@ const Index = ({ className = "w-full h-full", isDemo = false, lang = 'de' }: Ind
             events={mapEvents}
             loading={eventsLoading}
             error={eventsError}
-            onEventHover={(event, rect) => {
-              if (window.matchMedia('(pointer: fine)').matches) {
-                setHoveredEvent(event);
-                setHoveredCardRect(rect);
-              }
-            }}
-            onEventHoverEnd={() => {
-              setHoveredEvent(null);
-              setHoveredCardRect(null);
-            }}
+            onEventHover={() => { }}
+            onEventHoverEnd={() => { }}
           />
         )}
       </AnimatePresence>

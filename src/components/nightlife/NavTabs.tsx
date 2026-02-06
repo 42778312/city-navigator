@@ -45,12 +45,12 @@ const NavTabs: React.FC<NavTabsProps> = ({ activeTabs, onChange }) => {
                                         key={tab.id}
                                         onClick={() => onChange(tab.id)}
                                         className={`
-                                            relative flex items-center gap-1.5 md:gap-2 px-3 md:px-5 py-2 md:py-2.5 rounded-xl text-[11px] md:text-sm font-semibold transition-all duration-300 whitespace-nowrap
-                                            ${isSelected
+                                                relative flex items-center gap-1.5 md:gap-2 px-3 md:px-5 py-2 md:py-2.5 rounded-xl text-[11px] md:text-sm font-semibold transition-all duration-300 whitespace-nowrap
+                                                ${isSelected
                                                 ? 'bg-orange-600/20 text-orange-400 border border-orange-500/30 shadow-[0_0_15px_rgba(234,88,12,0.15)] scale-[1.02]'
                                                 : 'text-white/60 hover:text-white hover:bg-white/5 border border-transparent'
                                             }
-                                        `}
+                                            `}
                                     >
                                         <Icon className={`w-3.5 h-3.5 md:w-4 h-4 ${isSelected ? 'text-orange-400' : 'text-inherit'}`} />
                                         <span className="tracking-wide">{tab.label}</span>
