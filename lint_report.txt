@@ -1,0 +1,48 @@
+
+> vite_react_shadcn_ts@0.0.0 lint
+> eslint .
+
+
+/home/debian/git/city-navigator/dev-dist/workbox-5a5d9309.js
+    69:7   error    Definition for rule '@typescript-eslint/ban-types' was not found                @typescript-eslint/ban-types
+   436:5   error    Definition for rule '@typescript-eslint/ban-types' was not found                @typescript-eslint/ban-types
+   452:5   warning  Unused eslint-disable directive (no problems were reported)
+   769:11  error    Definition for rule '@typescript-eslint/no-unsafe-member-access' was not found  @typescript-eslint/no-unsafe-member-access
+   771:13  error    Definition for rule '@typescript-eslint/no-unsafe-assignment' was not found     @typescript-eslint/no-unsafe-assignment
+   965:11  error    Definition for rule '@typescript-eslint/no-unsafe-assignment' was not found     @typescript-eslint/no-unsafe-assignment
+   981:13  error    Definition for rule '@typescript-eslint/no-unsafe-assignment' was not found     @typescript-eslint/no-unsafe-assignment
+   987:13  warning  Unused eslint-disable directive (no problems were reported)
+  1406:11  warning  Unused eslint-disable directive (no problems were reported)
+  1665:5   error    Definition for rule '@typescript-eslint/ban-types' was not found                @typescript-eslint/ban-types
+  2062:35  warning  Unused eslint-disable directive (no problems were reported)
+  2793:9   error    Definition for rule '@typescript-eslint/no-unsafe-return' was not found         @typescript-eslint/no-unsafe-return
+  2840:9   error    Definition for rule '@typescript-eslint/no-unsafe-return' was not found         @typescript-eslint/no-unsafe-return
+
+/home/debian/git/city-navigator/src/components/PWAInstallPrompt.tsx
+   6:58  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  12:81  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  15:70  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  21:29  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  35:63  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/home/debian/git/city-navigator/src/components/map/hooks/useMapStyle.ts
+  127:17  warning  The ref value 'map.current' will likely have changed by the time this effect cleanup function runs. If this ref points to a node rendered by React, copy 'map.current' to a variable inside the effect, and use that variable in the cleanup function  react-hooks/exhaustive-deps
+
+/home/debian/git/city-navigator/src/components/ui/button.tsx
+  47:18  warning  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+
+/home/debian/git/city-navigator/src/components/ui/sidebar.tsx
+  770:3  warning  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+
+/home/debian/git/city-navigator/src/components/ui/sonner.tsx
+  27:19  warning  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+
+/home/debian/git/city-navigator/src/lib/nightlifeApi.ts
+  38:20  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/home/debian/git/city-navigator/tailwind.config.ts
+  110:13  error  A `require()` style import is forbidden  @typescript-eslint/no-require-imports
+
+✖ 24 problems (16 errors, 8 warnings)
+  0 errors and 4 warnings potentially fixable with the `--fix` option.
+

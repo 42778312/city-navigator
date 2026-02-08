@@ -249,13 +249,7 @@ function formatTime(date: Date): string {
   return `${hours}:${minutes}`;
 }
 
-/**
- * Check if current time is evening/night (for enhanced visualization)
- */
-export function isEveningTime(): boolean {
-  const hour = new Date().getHours();
-  return hour >= 18 || hour < 6; // 6 PM to 6 AM
-}
+
 
 /**
  * Get venue status text for display
@@ -286,28 +280,4 @@ function parseTimeString(timeStr: string): Date {
   return date;
 }
 
-/**
- * Convert venues to GeoJSON FeatureCollection
- */
-export function venuesToGeoJSON(venues: NightlifeVenue[]): GeoJSON.FeatureCollection {
-  return {
-    type: 'FeatureCollection',
-    features: venues.map((venue) => ({
-      type: 'Feature',
-      geometry: {
-        type: 'Point',
-        coordinates: venue.coordinates,
-      },
-      properties: {
-        id: venue.id,
-        name: venue.name,
-        type: venue.type,
-        intensity: venue.intensity,
-        isOpen: venue.isOpen ?? true,
-        openingHours: venue.openingHours,
-        opensAt: venue.opensAt,
-        closesAt: venue.closesAt,
-      },
-    })),
-  };
-}
+
